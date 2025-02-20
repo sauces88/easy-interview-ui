@@ -116,6 +116,7 @@ export const useSocketStore = defineStore('socket', () => {
     if (socket.value) return;
     const userStore = useUserStore();
     // 建立WebSocket连接
+    console.log(userStore.token)
     const webSocket = new WebSocket(socketUrl, [userStore.token]);
 
     // 监听WebSocket事件
