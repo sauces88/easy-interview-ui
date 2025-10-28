@@ -459,6 +459,7 @@
             <!-- 练习结束状态（展示评估） -->
             <div
               v-else-if="practiceFinished"
+              class="practice-finished"
             >
               <!-- 评分和点评展示 - 使用 Markdown 渲染 -->
               <div class="evaluation-container">
