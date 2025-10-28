@@ -1,14 +1,14 @@
 <template>
   <div class="tool-bar-ri">
     <div class="header-icon">
-      <AssemblySize id="assemblySize" />
+<!--      <AssemblySize id="assemblySize" />-->
       <Language id="language" />
-      <SearchMenu id="searchMenu" />
-      <ThemeSetting id="themeSetting" />
+<!--      <SearchMenu id="searchMenu" />-->
+<!--      <ThemeSetting id="themeSetting" />-->
       <Message id="message" />
       <Fullscreen id="fullscreen" />
     </div>
-    <span class="username">{{ username }}</span>
+    <span class="username">{{ nickname || username }}</span>
     <Avatar />
   </div>
 </template>
@@ -26,6 +26,11 @@ import Avatar from './components/Avatar.vue';
 
 const userStore = useUserStore();
 const username = computed(() => userStore.userInfo.username);
+const nickname = computed(() => {
+  return userStore.userInfo.nickname?.replace(/\\u([0-9A-F]{4})/gi, (_, p1) => {
+    return String.fromCharCode(parseInt(p1, 16));
+  });
+});
 </script>
 
 <style scoped lang="scss">

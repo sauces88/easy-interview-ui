@@ -13,7 +13,8 @@ export namespace IResume {
     id?: number
     url?: string
     text?: string
- }
+    userId?: number | string
+  }
 
   // list或detail返回结构
   export interface Row {

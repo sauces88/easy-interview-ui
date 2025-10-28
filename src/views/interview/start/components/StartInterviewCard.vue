@@ -3,16 +3,20 @@
     <div class="card-content">
       <div class="interviewer-section">
         <template v-if="!selectedBot">
-          <el-button type="primary" @click="selectBot">选择面试官</el-button>
+          <el-button type="primary" @click="selectBot">
+            {{ t('interview.start.selectBot') }}
+          </el-button>
         </template>
         <template v-else>
           <div class="selected-bot">
             <div class="bot-avatar">
-              <img :src="selectedBot.icon_url || '/default-avatar.png'" alt="面试官头像">
+              <img :src="selectedBot.icon_url || '/default-avatar.png'" :alt="t('interview.start.botAvatar')">
             </div>
             <div class="bot-info">
               <span class="name">{{ selectedBot.bot_name }}</span>
-              <el-button type="primary" link @click="selectBot">重新选择</el-button>
+              <el-button type="primary" link @click="selectBot">
+                {{ t('interview.start.reselect') }}
+              </el-button>
             </div>
           </div>
         </template>
@@ -20,24 +24,20 @@
 
       <div class="action-section" v-if="selectedBot">
         <div class="button-group">
-          <template v-if="showNextStep">
-            <el-button
-              v-if="hasUnfinishedConversation"
-              type="primary"
-              @click="continueInterview"
-            >
-              继续上次面试
-            </el-button>
-            <el-button
-              type="primary"
-              @click="startNewInterview"
-            >
-              开始新面试
-            </el-button>
-          </template>
-          <template v-else>
-            <el-button type="primary" @click="handleNextStep">下一步</el-button>
-          </template>
+          <el-button
+            v-if="hasUnfinishedConversation"
+            type="primary"
+            @click="continueInterview"
+          >
+            {{ t('interview.start.continueInterview') }}
+          </el-button>
+          <el-button
+            type="primary"
+            @click="startNewInterview"
+            :disabled="loading"
+          >
+            {{ t('interview.start.startButton') }}
+          </el-button>
         </div>
       </div>
     </div>
@@ -45,9 +45,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
-defineProps<{
+const { t } = useI18n()
+const loading = ref(false)
+
+const props = defineProps<{
   selectedBot: any
   hasUnfinishedConversation: boolean
 }>()
@@ -59,16 +63,9 @@ const emit = defineEmits<{
   (e: 'fetch-last-conversation'): void
 }>()
 
-const showNextStep = ref(false)
-
-const selectBot = () => {
-  showNextStep.value = false
+const selectBot = async () => {
   emit('select-bot')
-}
-
-const handleNextStep = async () => {
   emit('fetch-last-conversation')
-  showNextStep.value = true
 }
 
 const startNewInterview = () => {
@@ -78,22 +75,35 @@ const startNewInterview = () => {
 const continueInterview = () => {
   emit('continue-interview')
 }
+
+watch(() => props.selectedBot, (newBot) => {
+  if (newBot) {
+    emit('fetch-last-conversation')
+  }
+})
 </script>
 
 <style scoped lang="scss">
 .start-interview-card {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   height: 100%;
 
+  :deep(.el-card__body) {
+    height: 100%;
+    padding: 0;
+  }
+
   .card-content {
-    text-align: center;
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
     padding: 20px;
 
     .interviewer-section {
-      margin-bottom: 30px;
+      margin-bottom: 40px;
+      width: 100%;
+      text-align: center;
 
       .selected-bot {
         display: flex;
@@ -102,15 +112,17 @@ const continueInterview = () => {
         gap: 15px;
 
         .bot-avatar {
-          width: 80px;
-          height: 80px;
+          width: 120px;
+          height: 120px;
           border-radius: 50%;
           overflow: hidden;
+          border: 2px solid #ebeef5;
 
           img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
+            background-color: #f5f7fa;
           }
         }
 
@@ -118,10 +130,11 @@ const continueInterview = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 8px;
+          gap: 12px;
 
           .name {
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: 500;
             color: #303133;
           }
         }
@@ -129,14 +142,18 @@ const continueInterview = () => {
     }
 
     .action-section {
+      width: 100%;
+      
       .button-group {
         display: flex;
         gap: 16px;
         justify-content: center;
-      }
 
-      .el-button {
-        min-width: 120px;
+        .el-button {
+          min-width: 140px;
+          height: 40px;
+          font-size: 14px;
+        }
       }
     }
   }

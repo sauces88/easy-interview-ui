@@ -1,5 +1,24 @@
 import { isArray } from '@/utils/is';
 import CryptoJS from 'crypto-js';
+import { useAppStore } from '@/stores/modules/app';
+
+/**
+ * @description 根据域名获取logo路径
+ * @returns {string}
+ */
+export function getLogoPath(): string {
+  const hostname = window.location.hostname;
+  return hostname === 'speakx.gealam.com' ? new URL('@/assets/images/logo2.png', import.meta.url).href : new URL('@/assets/images/logo.png', import.meta.url).href;
+}
+
+/**
+ * @description 根据域名获取favicon路径
+ * @returns {string}
+ */
+export function getFaviconPath(): string {
+  const hostname = window.location.hostname;
+  return hostname === 'speakx.gealam.com' ? '/favicon2.ico' : '/favicon.ico';
+}
 
 /**
  * @description 获取localStorage
@@ -123,21 +142,22 @@ export function randomNum(min: number, max: number): number {
 export function getTimeState() {
   const timeNow = new Date();
   const hours = timeNow.getHours();
-  if (hours >= 6 && hours <= 10) {
-    return `早上好 ⛅`;
+  const { language } = useAppStore();
+  
+  if (language === 'en-US') {
+    if (hours >= 6 && hours <= 10) return 'Good Morning ⛅';
+    if (hours >= 10 && hours <= 14) return 'Good Afternoon 🌞';
+    if (hours >= 14 && hours <= 18) return 'Good Afternoon 🌞';
+    if (hours >= 18 && hours <= 24) return 'Good Evening 🌛';
+    if (hours >= 0 && hours <= 6) return 'Good Night 🌛';
   }
-  if (hours >= 10 && hours <= 14) {
-    return `中午好 🌞`;
-  }
-  if (hours >= 14 && hours <= 18) {
-    return `下午好 🌞`;
-  }
-  if (hours >= 18 && hours <= 24) {
-    return `晚上好 🌛`;
-  }
-  if (hours >= 0 && hours <= 6) {
-    return `凌晨好 🌛`;
-  }
+  
+  // Default Chinese
+  if (hours >= 6 && hours <= 10) return `早上好 ⛅`;
+  if (hours >= 10 && hours <= 14) return `中午好 🌞`;
+  if (hours >= 14 && hours <= 18) return `下午好 🌞`;
+  if (hours >= 18 && hours <= 24) return `晚上好 🌛`;
+  if (hours >= 0 && hours <= 6) return `凌晨好 🌛`;
 }
 
 /**
@@ -147,10 +167,10 @@ export function getTimeState() {
 export function getBrowserLang(): string {
   const browserLang = navigator.language ? navigator.language : navigator.browserLanguage;
   let defaultBrowserLang;
-  if (['cn', 'zh', 'zh-cn'].includes(browserLang.toLowerCase())) {
-    defaultBrowserLang = 'zh';
+  if (['cn', 'zh', 'zh-cn', 'zh-CN'].includes(browserLang.toLowerCase())) {
+    defaultBrowserLang = 'zh-CN';
   } else {
-    defaultBrowserLang = 'en';
+    defaultBrowserLang = 'en-US';
   }
   return defaultBrowserLang;
 }

@@ -4,7 +4,7 @@
     <el-header>
       <div class="header-lf mask-image">
         <div class="logo flx-center">
-          <img class="logo-img" src="@/assets/images/logo.svg" alt="logo" />
+          <img class="logo-img" :src="logoUrl" alt="logo" />
           <span class="logo-text">{{ title }}</span>
         </div>
         <ToolBarLeft />
@@ -45,12 +45,21 @@ import SubMenu from '@/layouts/components/Menu/SubMenu.vue';
 import ToolBarLeft from '@/layouts/components/Header/ToolBarLeft.vue';
 import ToolBarRight from '@/layouts/components/Header/ToolBarRight.vue';
 import { useAppStore } from '@/stores/modules/app';
+import logo from '@/assets/images/logo.png';
+import logo2 from '@/assets/images/logo2.png';
+import logo3 from '@/assets/images/logo3.png';
 
 defineOptions({
   name: 'LayoutClassic'
 });
 
 const title = import.meta.env.VITE_APP_TITLE;
+const logoUrl = computed(() => {
+  const hostname = window.location.hostname;
+  if (hostname === 'speakx.gealam.com') return logo2;
+  if (hostname === 'jinli.gealam.com') return logo3;
+  return logo;
+});
 
 const route = useRoute();
 const authStore = useAuthStore();

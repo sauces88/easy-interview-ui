@@ -68,13 +68,13 @@ export const useTable = (
       let { data } = await api({ ...state.searchInitParam, ...state.totalParam });
       dataCallBack && (data = dataCallBack(data));
       if (typeof data === 'object' && Object.keys(data).length === 0) {
-        state.tableData = isPageable ? data.rows : [];
+        state.tableData = [];
       } else {
-        state.tableData = isPageable ? data.rows : data;
+        state.tableData = isPageable ? (data.rows || []) : data;
       }
       state.loading = false;
       // 解构后台返回的分页数据 (如果有分页更新分页信息)
-      if (isPageable) {
+      if (isPageable && data && typeof data === 'object') {
         const { current: pageNum, limit: pageSize, total } = data;
         updatePageable({ pageNum, pageSize, total });
       }

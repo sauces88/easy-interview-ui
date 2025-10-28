@@ -6,6 +6,7 @@ export namespace IMenu {
   export interface Form {
     id?: string;
     title?: string;
+    tilteUs: string;
     pid?: string;
     path?: string;
     name?: string;
@@ -28,6 +29,7 @@ export namespace IMenu {
     id: string;
     pid: string;
     title: string;
+    tilteUs: string;
     children: Tree[];
   }
 

@@ -31,7 +31,14 @@
           :active-value="'T'"
           :inactive-value="'F'"
           :loading="switchLoading"
-          :before-change="() => changeDataScope(scope.row)"
+          :before-change="async () => {
+            try {
+              await changeDataScope(scope.row)
+              return true
+            } catch {
+              return false
+            }
+          }"
         />
       </template>
 
@@ -96,32 +103,33 @@ const proTableRef = ref<ProTableInstance>();
 // 获取table列表
 const getTableList = (params: IMenu.Query) => getMenuList(params);
 
-const defaultExpandAllKey = ref(true);
+const defaultExpandAllKey = ref(false);
 
 // 表格配置项
 const columns: ColumnProps<Menu.MenuOptions>[] = [
-  { type: 'index', label: '#' },
+  { type: 'index', label: '#', width: 70},
   { prop: 'meta.title', label: '名称', align: 'left' },
+  { prop: 'titleUs', label: '名称(英文)'},
   {
     prop: 'menuTypeCd',
     label: '类型',
-    width: 100,
+    width: 70,
     tag: true,
     enum: optionsStore.getDictOptions('menu_type'),
     fieldNames: { label: 'codeName', value: 'id', tagType: 'callbackShowStyle' }
   },
   { prop: 'meta.icon', label: '图标', width: 100 },
-  { prop: 'sort', label: '排序', width: 100 },
+  { prop: 'sort', label: '排序', width: 70 },
   { prop: 'name', label: '路由名称' },
   { prop: 'path', label: '路由地址' },
   { prop: 'component', label: '组件路径' },
   {
     prop: 'useDataScope',
-    label: '数据权限支持',
+    label: '数据权限',
     width: 100
   },
   { prop: 'permissions', label: '权限', tag: true, width: 200 },
-  { prop: 'operation', label: '操作', width: 300, fixed: 'right' }
+  { prop: 'operation', label: '操作', width: 280, fixed: 'right' }
 ];
 const switchLoading = ref(false);
 // 打开 drawer(新增、查看、编辑)

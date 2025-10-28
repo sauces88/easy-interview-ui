@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="`${paramsProps.title}`"
+    :title="paramsProps.title"
     :destroy-on-close="true"
     width="580px"
     draggable
@@ -14,44 +14,47 @@
       :model="paramsProps.row"
       @submit.enter.prevent="handleSubmit"
     >
-      <el-form-item label="智能体id" prop="botId">
+      <el-form-item :label="t('interview.bot.id')" prop="botId">
         <el-input
           v-model="paramsProps.row.botId"
-          placeholder="请填写智能体id"
+          :placeholder="t('interview.bot.idPlaceholder')"
           clearable
         ></el-input>
       </el-form-item>
-      <el-form-item label="会话id" prop="conversationId">
+      <el-form-item :label="t('interview.conversation.id')" prop="conversationId">
         <el-input
           v-model="paramsProps.row.conversationId"
-          placeholder="请填写会话id"
+          :placeholder="t('interview.conversation.idPlaceholder')"
           clearable
         ></el-input>
       </el-form-item>
-      <el-form-item label="是否完结（0=未完结,1=已完结）" prop="completed">
+      <el-form-item :label="t('interview.conversation.status')" prop="completed">
         <el-input-number
-          v-model="paramsProps.row.completed" :precision="0" :min="1" :max="999999" />
+          v-model="paramsProps.row.completed" 
+          :precision="0" 
+          :min="0" 
+          :max="1" 
+        />
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="visible = false"> 取消</el-button>
-      <el-button type="primary" @click="handleSubmit"> 确定</el-button>
+      <el-button @click="visible = false">{{ t('common.cancel') }}</el-button>
+      <el-button type="primary" @click="handleSubmit">{{ t('common.confirm') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { type ElForm, ElMessage } from 'element-plus'
 
-defineOptions({
-    name: 'ConversationForm'
-})
+const { t } = useI18n()
 
 const rules = reactive({
-  botId: [{ required: true, message: '请填写智能体id' }],
-  conversationId: [{ required: true, message: '请填写会话id' }],
-  completed: [{ required: true, message: '请填写是否完结（0=未完结,1=已完结）' }],
+  botId: [{ required: true, message: t('validate.required') }],
+  conversationId: [{ required: true, message: t('validate.required') }],
+  completed: [{ required: true, message: t('validate.required') }],
 })
 
 const visible = ref(false)

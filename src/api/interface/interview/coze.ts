@@ -32,11 +32,13 @@ export namespace ICoze {
     conversationId: string
     completed: boolean
     createTime: string
+    assistantId?: number
   }
 
-  // 聊天请求参数，只需要 conversationId 和 content
+  // 聊天请求参数
   export interface ChatRequest {
     conversationId: string
     content: string
+    audioFlag: boolean
   }
 } 

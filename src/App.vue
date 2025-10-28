@@ -1,5 +1,5 @@
 <template>
-  <el-config-provider :locale="locale" :size="assemblySize" :button="buttonConfig">
+  <el-config-provider :locale="currentLocale" :size="assemblySize" :button="buttonConfig">
     <RouterView />
   </el-config-provider>
 </template>
@@ -7,12 +7,12 @@
 <script setup lang="ts">
 import { useTheme } from '@/hooks/useTheme';
 import { useAppStore } from '@/stores/modules/app';
-import { useI18n } from 'vue-i18n';
 import { getBrowserLang } from '@/utils';
 import en from 'element-plus/es/locale/lang/en';
 import zhCn from 'element-plus/es/locale/lang/zh-cn';
 import type { LanguageType } from '@/stores/interface/app';
 import { computed, onMounted, reactive } from 'vue';
+import i18n from '@/languages';
 
 const appStore = useAppStore();
 
@@ -20,19 +20,9 @@ const appStore = useAppStore();
 const { initTheme } = useTheme();
 initTheme();
 
-// init language
-const i18n = useI18n();
-onMounted(() => {
-  const language = appStore.language ?? getBrowserLang();
-  i18n.locale.value = language;
-  appStore.changeLanguage(language as LanguageType);
-});
-
 // element language
-const locale = computed(() => {
-  if (appStore.language === 'zh') return zhCn;
-  if (appStore.language === 'en') return en;
-  return getBrowserLang() === 'zh' ? zhCn : en;
+const currentLocale = computed(() => {
+  return appStore.language === 'zh-CN' ? zhCn : en;
 });
 
 // element assemblySize
@@ -40,4 +30,9 @@ const assemblySize = computed(() => appStore.assemblySize);
 
 // element button config
 const buttonConfig = reactive({ autoInsertSpace: false });
+
+onMounted(() => {
+  const language = appStore.language ?? getBrowserLang();
+  appStore.changeLanguage(language as LanguageType);
+});
 </script>

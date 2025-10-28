@@ -36,7 +36,7 @@
       <el-form-item label="回显样式" prop="isFull">
         <el-radio-group v-model="paramsProps.row.callbackShowStyle" value="1">
           <el-radio :value="item.value" v-for="item in tagsTypeOptions" :key="item.label">
-            <el-tag :type="item.value">
+            <el-tag :type="(item.value as 'primary' | 'success' | 'warning' | 'info' | 'danger')">
               {{ item.label }}
             </el-tag>
           </el-radio>

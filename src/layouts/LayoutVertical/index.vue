@@ -2,10 +2,10 @@
 <template>
   <el-container class="layout">
     <el-aside>
-      <div class="aside-box" :style="{ width: isCollapse ? '65px' : '210px' }">
+      <div class="aside-box" :style="{ width: isCollapse ? '65px' : '240px' }">
         <div class="logo flx-center">
-          <img class="logo-img" src="@/assets/images/logo.svg" alt="logo" />
-          <span v-show="!isCollapse" class="logo-text">{{ title }}</span>
+          <img class="logo-img" :src="logoUrl" alt="logo" />
+          <span v-show="!isCollapse" class="logo-text"></span>
         </div>
         <el-scrollbar>
           <el-menu
@@ -20,7 +20,7 @@
                 <component :is="homeRoute.meta?.icon" />
               </el-icon>
               <template #title>
-                <span class="sle">{{ homeRoute.meta?.title || '' }}</span>
+                <span class="sle">{{ getMenuTitle(homeRoute) }}</span>
               </template>
             </el-menu-item>
             <SubMenu :menu-list="menuList" />
@@ -47,12 +47,22 @@ import ToolBarLeft from '@/layouts/components/Header/ToolBarLeft.vue';
 import ToolBarRight from '@/layouts/components/Header/ToolBarRight.vue';
 import SubMenu from '@/layouts/components/Menu/SubMenu.vue';
 import { useAppStore } from '@/stores/modules/app';
+import { getMenuTitle } from '@/utils/i18n';
+import logo from '@/assets/images/logo.png';
+import logo2 from '@/assets/images/logo2.png';
+import logo3 from '@/assets/images/logo3.png';
 
 defineOptions({
   name: 'LayoutVertical'
 });
 
 const title = import.meta.env.VITE_APP_TITLE;
+const logoUrl = computed(() => {
+  const hostname = window.location.hostname;
+  if (hostname === 'speakx.gealam.com') return logo2;
+  if (hostname === 'jinli.gealam.com') return logo3;
+  return logo;
+});
 
 const route = useRoute();
 const router = useRouter();

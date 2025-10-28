@@ -12,7 +12,7 @@ export const useAppStore = defineStore(
     // element 组件大小
     const assemblySize = ref<AssemblySizeType>('default');
     // 当前系统语言
-    const language = ref<LanguageType>(null);
+    const language = ref<LanguageType>('zh-CN');
     // 当前页面是否全屏
     const maximize = ref(false);
     // 主题颜色
@@ -41,8 +41,15 @@ export const useAppStore = defineStore(
     const tabsIcon = ref(true);
     // 页脚
     const footer = ref(true);
+    // 首页标题（用于响应式修改）
+    const homeTitle = ref('首页');
+    const homeTitleUs = ref('Home');
 
     const changeLayout = (val: LayoutType) => (layout.value = val);
+    const changeHomeTitle = (val: string, valUs?: string) => {
+      homeTitle.value = val;
+      if (valUs) homeTitleUs.value = valUs;
+    };
     const changeAssemblySize = (val: AssemblySizeType) => (assemblySize.value = val);
     const changeLanguage = (val: LanguageType) => (language.value = val);
     const changeMaximize = (val: boolean) => (maximize.value = val);
@@ -78,7 +85,10 @@ export const useAppStore = defineStore(
       tabs,
       tabsIcon,
       footer,
+      homeTitle,
+      homeTitleUs,
       changeLayout,
+      changeHomeTitle,
       changeAssemblySize,
       changeLanguage,
       changeMaximize,

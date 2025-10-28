@@ -39,18 +39,23 @@ import { useRouter } from 'vue-router';
 import { logoutApi } from '@/api/modules/system/login';
 import { useUserStore } from '@/stores/modules/user';
 import { useAuthStore } from '@/stores/modules/auth';
+import { useShareStore } from '@/stores/modules/share';
 import InfoDialog from './InfoDialog.vue';
 import PasswordDialog from './PasswordDialog.vue';
 import { Edit, SwitchButton, User } from '@element-plus/icons-vue';
 import { useSocketStore } from '@/stores/modules/socket';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import defaultAvatar from '@/assets/images/avatar.gif';
+import { useI18n } from 'vue-i18n';
 
 const router = useRouter();
 const userStore = useUserStore();
+const shareStore = useShareStore();
 const socketStore = useSocketStore();
 const authStore = useAuthStore();
 const avatarSrc = ref<string | null>(null);
+const i18n = useI18n();
+
 /**
  * 预加载图片，判断图片是否可以正常加载
  * @param url
@@ -77,9 +82,9 @@ const getLogo = async () => {
 
 // 退出登录
 const logout = () => {
-  ElMessageBox.confirm('您是否确认退出登录?', '温馨提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  ElMessageBox.confirm(i18n.t('logout.logoutConfirm'), i18n.t('logout.logoutTip'), {
+    confirmButtonText: i18n.t('common.confirm'),
+    cancelButtonText: i18n.t('common.cancel'),
     type: 'warning'
   }).then(async () => {
     // 1.执行退出登录接口
@@ -88,12 +93,14 @@ const logout = () => {
     // 2.清除 Token
     userStore.clear();
     authStore.clear();
+    // 清理分享链接
+    shareStore.clear();
     // 关闭socket
     socketStore.close();
 
     // 3.重定向到登陆页
     router.replace(LOGIN_URL);
-    ElMessage.success('退出登录成功！');
+    ElMessage.success(i18n.t('logout.logoutSuccess'));
   });
 };
 

@@ -26,6 +26,7 @@ export const staticRouter: RouteRecordRaw[] = [
         component: () => import('@/views/home/index.vue'),
         meta: {
           title: '首页',
+          titleUs: 'Home',
           icon: 'HomeFilled',
           isAffix: 'T',
           isFull: 'F',

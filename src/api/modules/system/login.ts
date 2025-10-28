@@ -13,6 +13,13 @@ export const loginApi = (params: ILogin.LoginParams) => {
   // return http.get(`/login?${qs.stringify(params, { arrayFormat: "repeat" })}`); // get 请求可以携带数组等复杂参数
 };
 
+// 邮箱登录
+export const emailLoginApi = (params: ILogin.LoginParams) => {
+  params.grantType = 'email';
+  params.clientId = import.meta.env.VITE_EMAIL_CLIENT_ID;
+  return http.post<ILogin.LoginInfo>(ADMIN_MODULE + `/auth/login`, params, { loading: false }); // 正常 post json 请求  ==>  application/json
+};
+
 // 获取菜单列表
 export const getAuthMenuListApi = () => {
   return http.get<Menu.MenuOptions[]>(ADMIN_MODULE + `/sys-menu/menu`, {}, { loading: false });

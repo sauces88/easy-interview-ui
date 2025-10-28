@@ -771,8 +771,9 @@ const typeContent = ref<{
   }
 });
 
-const changeRadio = (val: string) => {
-  isShowExcel.value = val === 'all' || val === 'server';
+const changeRadio = (val: string | number | boolean | undefined) => {
+  const strVal = String(val);
+  isShowExcel.value = strVal === 'all' || strVal === 'server';
 };
 
 defineExpose({

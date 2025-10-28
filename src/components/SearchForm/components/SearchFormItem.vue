@@ -1,7 +1,8 @@
 <template>
   <component
     :is="column.render ?? `el-${column.el}`"
-    v-bind="{ ...handleSearchProps, ...placeholder, searchParam: _searchParam, clearable }"
+    style="width: 220px"
+    v-bind="{ ...handleSearchProps, ...placeholder, clearable }"
     v-model.trim="_searchParam[column.key ?? handleProp(column.prop!)]"
     :data="column.el === 'tree-select' ? columnEnum : []"
     :options="['cascader', 'select-v2'].includes(column.el!) ? columnEnum : []"
@@ -23,17 +24,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, ref } from 'vue';
+import { computed, inject } from 'vue';
 import { handleProp } from '@/utils';
 import type { SearchProps } from '@/components/ProTable/interface';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 defineOptions({
   name: 'SearchFormItem'
 });
+
 interface SearchFormItem {
   column: SearchProps;
   searchParam: { [key: string]: any };
 }
+
 const props = defineProps<SearchFormItem>();
 
 // Re receive SearchParam
@@ -49,16 +55,32 @@ const fieldNames = computed(() => {
 });
 
 // 接收 enumMap (el 为 select-v2 需单独处理 enumData)
-const enumMap = inject('enumMap', ref(new Map()));
+const enumMap = inject('enumMap', new Map()) as Map<string, any[]>;
 const columnEnum = computed(() => {
-  let enumData = enumMap.value.get(props.column.prop) || props.column.enum;
+  let enumData = enumMap.get(props.column.prop!) || props.column.enum;
   if (!enumData) return [];
+
+  // 确保 enumData 是数组
+  const enumArray = Array.isArray(enumData) ? enumData : [];
+
+  // console.log('columnEnum debug:', {
+  //   column: props.column,
+  //   prop: props.column.prop,
+  //   fieldNames: fieldNames.value,
+  //   enumArray: enumArray,
+  //   firstItem: enumArray[0]
+  // });
+
   if (props.column.el === 'select-v2' && props.column.fieldNames) {
-    enumData = enumData.map((item: { [key: string]: any }) => {
-      return { ...item, label: item[fieldNames.value.label], value: item[fieldNames.value.value] };
+    return enumArray.map((item: { [key: string]: any }) => {
+      return {
+        ...item,
+        label: item[fieldNames.value.label] || item.label,
+        value: item[fieldNames.value.value] || item.value
+      };
     });
   }
-  return enumData;
+  return enumArray;
 });
 
 // 处理透传的 searchProps (el 为 tree-select、cascader 的时候需要给下默认 label && value && children)
@@ -81,19 +103,21 @@ const handleSearchProps = computed(() => {
   return searchProps;
 });
 
-// 处理默认 placeholder
-const placeholder = computed(() => {
-  const search = props.column;
-  if (['datetimerange', 'daterange', 'monthrange'].includes(search?.props?.type) || search?.props?.isRange) {
-    return { rangeSeparator: '至', startPlaceholder: '开始时间', endPlaceholder: '结束时间' };
-  }
-  const placeholder = search?.props?.placeholder ?? (search?.el?.includes('input') ? '请输入' : '请选择');
-  return { placeholder };
-});
-
 // 是否有清除按钮 (当搜索项有默认值时，清除按钮不显示)
 const clearable = computed(() => {
   const search = props.column;
   return search?.props?.clearable ?? (search?.defaultValue === null || search?.defaultValue === undefined);
+});
+
+// placeholder 设置
+const placeholder = computed(() => {
+  const search = props.column;
+
+  return {
+    placeholder: search?.props?.placeholder || t('common.inputPlaceholder'),
+    startPlaceholder: search?.props?.startPlaceholder || t('common.startTime'),
+    endPlaceholder: search?.props?.endPlaceholder || t('common.endTime'),
+    rangeSeparator: t('table.to')
+  };
 });
 </script>

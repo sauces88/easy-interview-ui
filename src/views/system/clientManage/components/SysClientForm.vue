@@ -51,10 +51,10 @@
         </template>
         <el-select v-model="paramsProps.row.grantTypeCdList" multiple clearable placeholder="请选择授权类型">
           <el-option
-            v-for="item in optionsStore.getDictOptions('grant_type')"
-            :key="item.alias"
-            :label="item.codeName"
-            :value="item.alias"
+            v-for="item in clientTypeOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.alias || ''"
           />
         </el-select>
       </el-form-item>
@@ -123,7 +123,7 @@
 
 <script setup lang="ts">
 import { useOptionsStore } from '@/stores/modules/options';
-import { reactive, ref } from 'vue';
+import { reactive, ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 
 defineOptions({
@@ -131,6 +131,15 @@ defineOptions({
 });
 
 const optionsStore = useOptionsStore();
+
+// 获取授权类型选项
+const clientTypeOptions = computed(() => {
+  return optionsStore.getDictOptions('grant_type').map(item => ({
+    value: item.id,
+    label: item.codeName,
+    alias: item.alias
+  }));
+});
 
 const rules = reactive({
   clientKey: [{ required: true, message: '请填写客户端名称' }],

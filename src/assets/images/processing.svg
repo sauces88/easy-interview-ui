@@ -1,0 +1,16 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="80" stroke="#E0E7FF" stroke-width="12"/>
+  <path d="M100 20C128.719 20 154.062 35.75 167.25 60" stroke="#5A6BFF" stroke-width="12" stroke-linecap="round">
+    <animateTransform 
+      attributeName="transform"
+      type="rotate"
+      from="0 100 100"
+      to="360 100 100"
+      dur="1.5s"
+      repeatCount="indefinite"/>
+  </path>
+  <rect x="70" y="70" width="60" height="60" rx="8" fill="#5A6BFF" opacity="0.2"/>
+  <rect x="80" y="80" width="40" height="8" rx="4" fill="#5A6BFF"/>
+  <rect x="80" y="96" width="40" height="8" rx="4" fill="#5A6BFF"/>
+  <rect x="80" y="112" width="20" height="8" rx="4" fill="#5A6BFF"/>
+</svg> 

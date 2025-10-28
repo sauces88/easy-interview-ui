@@ -6,13 +6,13 @@
         <el-card class="preview-card" shadow="hover">
           <template #header>
             <div class="card-header">
-              <span>简历预览</span>
+              <span>{{ t('interview.resume.preview') }}</span>
             </div>
           </template>
           <div class="preview-content">
             <pdf-preview v-if="resumeData.url" :url="resumeData.url"></pdf-preview>
-            <el-empty v-else description="暂无简历文件">
-              <el-button type="primary" @click="openUploadDialog">上传简历</el-button>
+            <el-empty v-else :description="t('interview.resume.noFile')">
+              <el-button type="primary" @click="openUploadDialog">{{ t('interview.resume.upload') }}</el-button>
             </el-empty>
           </div>
         </el-card>
@@ -23,78 +23,72 @@
         <el-card class="edit-card" shadow="hover">
           <template #header>
             <div class="card-header">
-              <span>简历信息编辑</span>
+              <span>{{ t('interview.resume.edit') }}</span>
               <div class="header-actions">
                 <el-button
                   v-if="hasResume"
                   type="primary"
-                  link
-                  @click="openUploadDialog"
+                  @click="saveResume"
+                  :loading="saving"
                 >
-                  重新上传
+                  {{ t('interview.resume.save') }}
                 </el-button>
               </div>
             </div>
           </template>
-          <el-empty v-if="!hasResume" description="请先上传简历文件后再编辑简历信息">
-          </el-empty>
-          <el-form
-              v-else
-              ref="ruleFormRef"
-              :rules="rules"
-              :model="resumeData"
-              @submit.enter.prevent="handleSubmit"
-          >
-            <el-form-item prop="text" class="content-item">
-              <el-input
+          <div class="edit-content">
+            <el-form :model="resumeData" label-position="top">
+              <el-form-item class="content-item">
+                <el-input
                   v-model="resumeData.text"
-                  placeholder="请填写简历内容"
                   type="textarea"
-                  :autosize="{ minRows: 16, maxRows: 16 }"
-              ></el-input>
-            </el-form-item>
-            <el-form-item class="button-item">
-              <el-button 
-                type="primary" 
-                @click="handleSubmit"
-                :disabled="!isTextModified"
-              >
-                保存
-              </el-button>
-            </el-form-item>
-          </el-form>
+                  :rows="20"
+                  :disabled="!hasResume"
+                />
+              </el-form-item>
+            </el-form>
+          </div>
         </el-card>
       </el-col>
     </el-row>
 
     <!-- 上传对话框 -->
     <el-dialog
-      v-model="uploadVisible"
-      title="上传简历"
-      :destroy-on-close="true"
-      width="580px"
-      draggable
+      v-model="uploadDialogVisible"
+      :title="t('interview.resume.upload')"
+      width="500px"
+      destroy-on-close
+      :close-on-click-modal="false"
     >
-      <el-upload
-        v-model:file-list="fileList"
-        class="upload-demo"
-        drag
-        :file-size="3"
-        :auto-upload="false"
-        :limit="1"
-        @change="handleFileUpload"
-        :accept="'.pdf'"
-      >
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-        <div class="el-upload__text">
-          拖拽文件到此处或 <em>点击上传</em>
-        </div>
-        <template #tip>
+      <div class="upload-wrapper">
+        <div class="upload-area">
+          <el-upload
+            class="upload-demo"
+            drag
+            ref="uploadRef"
+            :auto-upload="false"
+            :headers="headers"
+            :on-change="handleFileChange"
+            :before-upload="beforeUpload"
+            :limit="1"
+            accept=".pdf,.doc,.docx"
+          >
+            <div class="upload-icon">
+              <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            </div>
+            <div class="el-upload__text">
+              {{ t('interview.resume.dropFiles') }} <em>{{ t('interview.resume.clickUpload') }}</em>
+            </div>
+          </el-upload>
           <div class="el-upload__tip">
-            支持 PDF 格式，文件大小不能超过 3M
+            {{ t('interview.resume.uploadTip') }}
           </div>
-        </template>
-      </el-upload>
+        </div>
+        <div class="dialog-footer">
+          <el-button @click="uploadDialogVisible = false">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" @click="submitUpload" :loading="uploading">{{ t('interview.resume.submit') }}</el-button>
+        </div>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -103,21 +97,20 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { type ElForm, ElMessage, type UploadUserFile } from 'element-plus'
 import { getCurrentUserResumeDetailApi, updateResumeApi, createResumeApi } from '@/api/modules/interview/resume'
+import type { IResume } from '@/api/interface/interview/resume'
 import { useUserStore } from '@/stores/modules/user'
 import PdfPreview from '@/components/PdfPreview/index.vue'
 import { UploadFilled } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 
-defineOptions({
-  name: 'ResumeOwner'
-})
-
+const { t } = useI18n()
 const userStore = useUserStore()
 
 const rules = reactive({
-  text: [{ required: true, message: '请填写简历内容' }],
+  text: [{ required: true, message: t('interview.resume.contentRequired'), trigger: 'blur' }],
 })
 
-const resumeData = ref({
+const resumeData = ref<IResume.Row>({
   url: '',
   text: '',
   id: undefined
@@ -127,7 +120,7 @@ const ruleFormRef = ref<InstanceType<typeof ElForm>>()
 
 // 判断是否有简历
 const hasResume = computed(() => {
-  return resumeData.value.url && resumeData.value.id
+  return Boolean(resumeData.value.url && resumeData.value.id)
 })
 
 // 跟踪文本是否被修改
@@ -135,7 +128,7 @@ const isTextModified = ref(false)
 const initialText = ref('')
 
 // 监听文本内容变化
-watch(() => resumeData.value.text, (newVal, oldVal) => {
+watch(() => resumeData.value.text, (newVal) => {
   if (newVal !== initialText.value) {
     isTextModified.value = true
   } else {
@@ -153,14 +146,14 @@ const fetchResumeData = async () => {
       isTextModified.value = false  // 重置修改状态
     } else {
       ElMessage.info({
-        message: '您还未上传简历，请先上传简历文件',
-        duration: 0,
+        message: t('interview.resume.pleaseUploadFirst'),
+        duration: 2500,
         showClose: true
       })
     }
   } catch (error) {
     console.error('获取简历数据异常：', error)
-    ElMessage.error('系统异常，请稍后重试')
+    ElMessage.error(t('common.systemError'))
   }
 }
 
@@ -173,39 +166,114 @@ const handleSubmit = () => {
         ...resumeData.value,
         userId: userStore.userInfo.id
       })
-      ElMessage.success('保存成功！')
-      initialText.value = resumeData.value.text  // 更新初始文本
+      ElMessage.success(t('interview.resume.saveSuccess'))
+      initialText.value = resumeData.value.text || ''  // 更新初始文本
       isTextModified.value = false  // 重置修改状态
     } catch (error) {
       console.error('保存失败：', error)
-      ElMessage.error('保存失败')
+      ElMessage.error(t('interview.resume.saveError'))
     }
   })
 }
 
 // 上传相关
-const uploadVisible = ref(false)
-const fileList = ref<UploadUserFile[]>()
+const uploadDialogVisible = ref(false)
+const fileList = ref<UploadUserFile[]>([])
+const uploadRef = ref()
+const uploading = ref(false)
 
 const openUploadDialog = () => {
-  uploadVisible.value = true
+  uploadDialogVisible.value = true
   fileList.value = []
 }
 
-const handleFileUpload = async (uploadFile: UploadUserFile) => {
-  if (!uploadFile || !uploadFile.raw) {
+// 处理文件变化
+const handleFileChange = (file: UploadUserFile) => {
+  if (file) {
+    fileList.value = [file]
+  }
+}
+
+// 提交上传
+const submitUpload = async () => {
+  if (!fileList.value?.length || !fileList.value[0].raw) {
+    ElMessage.warning(t('interview.resume.pleaseSelectFile'))
     return
   }
 
+  uploading.value = true
   try {
-    await createResumeApi(uploadFile.raw)
-    ElMessage.success('上传成功')
-    uploadVisible.value = false
+    await createResumeApi(fileList.value[0].raw)
+    ElMessage.success(t('interview.resume.uploadSuccess'))
+    uploadDialogVisible.value = false
     fileList.value = []
     fetchResumeData() // 重新获取数据
   } catch (error) {
     console.error('上传失败：', error)
-    ElMessage.error('上传失败')
+    ElMessage.error(t('interview.resume.uploadError'))
+  } finally {
+    uploading.value = false
+  }
+}
+
+// 上传相关变量
+const saving = ref(false)
+const headers = computed(() => ({
+  Authorization: `Bearer ${userStore.token}`
+}))
+
+// 处理文件上传
+// const handleUploadSuccess = (response: any) => {
+//   if (response.code === 200) {
+//     ElMessage.success(t('interview.resume.uploadSuccess'))
+//     uploadDialogVisible.value = false
+//     fetchResumeData()
+//   } else {
+//     ElMessage.error(response.msg || t('interview.resume.uploadError'))
+//   }
+// }
+
+// const handleUploadError = (error: any) => {
+//   console.error('上传失败：', error)
+//   ElMessage.error(t('interview.resume.uploadError'))
+// }
+
+const beforeUpload = (file: File) => {
+  const isValidType = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type)
+  const isLt10M = file.size / 1024 / 1024 < 10
+
+  if (!isValidType) {
+    ElMessage.error(t('interview.resume.fileTypeError'))
+    return false
+  }
+  if (!isLt10M) {
+    ElMessage.error(t('interview.resume.fileSizeError'))
+    return false
+  }
+  return true
+}
+
+// 保存简历
+const saveResume = async () => {
+  if (!resumeData.value.text?.trim()) {
+    ElMessage.warning(t('interview.resume.contentRequired'))
+    return
+  }
+
+  saving.value = true
+  try {
+    await updateResumeApi({
+      ...resumeData.value,
+      userId: userStore.userInfo.id
+    })
+    ElMessage.success(t('interview.resume.saveSuccess'))
+    initialText.value = resumeData.value.text || ''
+    isTextModified.value = false
+  } catch (error) {
+    console.error('保存失败：', error)
+    ElMessage.error(t('interview.resume.saveError'))
+  } finally {
+    saving.value = false
   }
 }
 
@@ -217,7 +285,7 @@ onMounted(() => {
 <style scoped lang="scss">
 .resume-container {
   padding: 20px;
-  height: 100%;
+  height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
 
@@ -253,12 +321,19 @@ onMounted(() => {
       padding: 10px;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow: auto;
     }
   }
 
   .preview-content {
     flex: 1;
+    overflow: auto;
+  }
+
+  .edit-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
   }
 
@@ -269,9 +344,15 @@ onMounted(() => {
 
     .content-item {
       flex: 1;
-      margin-bottom: 10px;
+      margin-bottom: 0;
       display: flex;
       flex-direction: column;
+
+      :deep(.el-form-item__content) {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
 
       :deep(.el-textarea) {
         height: 100%;
@@ -288,26 +369,22 @@ onMounted(() => {
         }
       }
     }
-
-    .button-item {
-      margin-bottom: 0;
-      :deep(.el-form-item__content) {
-        display: flex;
-        justify-content: flex-end;
-        margin-left: 0 !important;
-
-        .el-button {
-          padding: 12px 30px;
-        }
-      }
-    }
   }
 
   // 添加上传对话框样式
   :deep(.el-dialog__body) {
-    display: flex;
-    justify-content: center;
     padding: 20px;
+  }
+
+  .upload-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   :deep(.el-upload) {
@@ -315,8 +392,45 @@ onMounted(() => {
 
     .el-upload-dragger {
       width: 100%;
-      height: 200px;
+      height: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
+
+    .upload-icon {
+      margin-bottom: 10px;
+      .el-icon--upload {
+        font-size: 48px;
+        color: #c0c4cc;
+      }
+    }
+
+    .el-upload__text {
+      font-size: 14px;
+      color: #606266;
+      margin-bottom: 10px;
+    }
+  }
+  
+  .el-upload__tip {
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    color: #909399;
+    margin-top: 10px;
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  .upload-actions {
+    display: none; // 隐藏之前的按钮区域
   }
 }
 </style>

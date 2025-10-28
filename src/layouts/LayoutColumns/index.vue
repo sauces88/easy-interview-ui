@@ -3,7 +3,7 @@
   <el-container class="layout">
     <div class="aside-split">
       <div class="logo flx-center">
-        <img class="logo-img" src="@/assets/images/logo.svg" alt="logo" />
+        <img class="logo-img" :src="logoUrl" alt="logo" />
       </div>
       <el-scrollbar>
         <div class="split-list">
@@ -20,7 +20,7 @@
               <SvgIcon v-if="item.meta.icon.startsWith('svg-')" :name="item.meta.icon.substring(4)" />
               <component v-else :is="item.meta.icon" />
             </el-icon>
-            <span class="title">{{ item.meta.title }}</span>
+            <span class="title">{{ getMenuTitle(item) }}</span>
           </div>
         </div>
       </el-scrollbar>
@@ -61,11 +61,22 @@ import ToolBarRight from '@/layouts/components/Header/ToolBarRight.vue';
 import SubMenu from '@/layouts/components/Menu/SubMenu.vue';
 import { useAppStore } from '@/stores/modules/app';
 import SvgIcon from '@/components/SvgIcon/index.vue';
+import { getMenuTitle } from '@/utils/i18n';
+import logo from '@/assets/images/logo.png';
+import logo2 from '@/assets/images/logo2.png';
+import logo3 from '@/assets/images/logo3.png';
+
 defineOptions({
   name: 'LayoutColumns'
 });
 
 const title = import.meta.env.VITE_APP_TITLE;
+const logoUrl = computed(() => {
+  const hostname = window.location.hostname;
+  if (hostname === 'speakx.gealam.com') return logo2;
+  if (hostname === 'jinli.gealam.com') return logo3;
+  return logo;
+});
 
 const route = useRoute();
 const router = useRouter();

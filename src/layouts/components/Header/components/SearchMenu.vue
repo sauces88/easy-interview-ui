@@ -20,7 +20,7 @@
           <el-icon>
             <component :is="item.meta.icon" />
           </el-icon>
-          <span> {{ item.meta.title }} </span>
+          <span> {{ getMenuTitle(item) }} </span>
         </template>
       </el-autocomplete>
     </el-dialog>
@@ -32,9 +32,12 @@ import { ref, computed, nextTick } from 'vue';
 import { Search } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/modules/auth';
+import { getMenuTitle } from '@/utils/i18n';
+import { useAppStore } from '@/stores/modules/app';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const appStore = useAppStore();
 const menuList = computed(() => authStore.flatMenuListGet.filter(item => item.meta.isHidden === 'F'));
 
 const searchMenuList = (queryString: string, cb: Function) => {
@@ -63,9 +66,10 @@ const closeSearch = () => {
 // 筛选菜单
 const filterNodeMethod = (queryString: string) => {
   return (restaurant: Menu.MenuOptions) => {
+    const title = getMenuTitle(restaurant).toLowerCase();
     return (
       restaurant.path.toLowerCase().indexOf(queryString.toLowerCase()) > -1 ||
-      restaurant.meta.title.toLowerCase().indexOf(queryString.toLowerCase()) > -1
+      title.indexOf(queryString.toLowerCase()) > -1
     );
   };
 };

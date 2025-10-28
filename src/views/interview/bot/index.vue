@@ -1,45 +1,33 @@
 <template>
   <div class="table-box">
     <ProTable
-        ref="proTableRef"
-        title="智能体表"
-        :indent="20"
-        :columns="columns"
-        :request-api="getTableList"
-        row-key="bot_id"
+      ref="proTableRef"
+      :title="t('interview.bot.title')"
+      :indent="20"
+      :columns="columns"
+      :request-api="getTableList"
+      row-key="bot_id"
+      :key="i18nKey"
     >
-      <template #tableHeader>
-        <el-button
-          type="primary"
-          :icon="RefreshRight"
-          plain
-          @click="clearCache"
-        >
-          清除缓存
-        </el-button>
-      </template>
       <template #publish_time="{ row }">
         {{ formatUnixTime(row.publish_time) }}
       </template>
       <template #icon_url="{ row }">
-        <div v-html="getIconHtml(row.icon_url)"></div>
+        <div v-html="getIconHtml(row.icon_url)" />
       </template>
     </ProTable>
   </div>
 </template>
 
 <script setup lang="ts">
-import {ref} from 'vue'
+import {ref, computed} from 'vue'
+import { useTableI18n } from '@/hooks/useTableI18n'
 import dayjs from 'dayjs'
-import { RefreshRight } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
 import ProTable from '@/components/ProTable/index.vue'
 import {getBotListApi} from '@/api/modules/interview/bot';
 import type {ColumnProps, ProTableInstance} from '@/components/ProTable/interface';
 
-defineOptions({
-  name: 'BotView'
-})
+const { t, i18nKey } = useTableI18n()
 
 const proTableRef = ref<ProTableInstance>();
 
@@ -53,36 +41,18 @@ const getIconHtml = (url: string) => {
   return url ? `<img src="${url}" alt="智能体头像" style="width: 50px; height: 50px;" />` : '';
 }
 
-// 表格配置项
-const columns: ColumnProps[] = [
-  {prop: 'bot_id', label: "智能体ID"},
-  {prop: 'bot_name', label: '名称'},
-  {prop: 'icon_url', label: '图标'},
-  {prop: 'description', label: '描述'},
-  {prop: 'publish_time', label: '最近发布时间'},
-]
-
-const CACHE_KEY = 'bot_list_cache'
+// 表格配置项 - 改为计算属性
+const columns = computed<ColumnProps[]>(() => [
+  {prop: 'bot_id', label: t('interview.bot.id')},
+  {prop: 'bot_name', label: t('interview.bot.name')},
+  {prop: 'icon_url', label: t('interview.bot.icon')},
+  {prop: 'description', label: t('interview.bot.description')},
+  {prop: 'publish_time', label: t('interview.bot.publishTime')},
+])
 
 // 获取table列表
 const getTableList = async () => {
-  // 尝试从缓存获取数据
-  const cachedData = localStorage.getItem(CACHE_KEY)
-  
-  if (cachedData) {
-    return JSON.parse(cachedData)
-  }
-  
-  // 如果没有缓存，获取新数据并缓存
-  const result = await getBotListApi()
-  localStorage.setItem(CACHE_KEY, JSON.stringify(result))
-  return result
+  return await getBotListApi({identifier: "easy.interview.main"})
 }
 
-// 清除缓存
-const clearCache = () => {
-  localStorage.removeItem(CACHE_KEY)
-  proTableRef.value?.getTableList()
-  ElMessage.success('缓存已清除')
-}
 </script>

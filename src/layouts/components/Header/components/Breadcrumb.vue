@@ -8,7 +8,7 @@
               <SvgIcon v-if="item.meta.icon.startsWith('svg-')" :name="item.meta.icon.substring(4)" />
               <component v-else :is="item.meta.icon" />
             </el-icon>
-            <span class="breadcrumb-title">{{ item.meta.title }}</span>
+            <span class="breadcrumb-title">{{ getMenuTitle(item) }}</span>
           </div>
         </el-breadcrumb-item>
       </transition-group>
@@ -25,20 +25,34 @@ import { HOME_URL } from '@/config';
 import { useAppStore } from '@/stores/modules/app';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { MENU_DIR } from '@/config/consts';
+import { getMenuTitle } from '@/utils/i18n';
+import { useI18n } from 'vue-i18n';
+
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const appStore = useAppStore();
+const { t } = useI18n();
 
 const breadcrumbList = computed(() => {
   const path = route.matched[route.matched.length - 1].path;
   let breadcrumbData = authStore.breadcrumbListGet[path] ?? [];
+  const homeItem = {
+    name: 'home',  // 添加 name 属性，让 getMenuTitle 能识别首页
+    path: HOME_URL,
+    meta: {
+      icon: 'HomeFilled',
+      title: t('breadcrumb.home'),
+      titleUs: 'Home'
+    }
+  };
+
   if (path === HOME_URL) {
-    breadcrumbData = [{ path: HOME_URL, meta: { icon: 'HomeFilled', title: '首页' } }, ...breadcrumbData];
+    breadcrumbData = [homeItem, ...breadcrumbData];
   }
   // 🙅‍♀️不需要首页面包屑可删除以下判断
   if (breadcrumbData.length > 0 && breadcrumbData[0].path !== HOME_URL) {
-    breadcrumbData = [{ path: HOME_URL, meta: { icon: 'HomeFilled', title: '首页' } }, ...breadcrumbData];
+    breadcrumbData = [homeItem, ...breadcrumbData];
   }
   return breadcrumbData;
 });

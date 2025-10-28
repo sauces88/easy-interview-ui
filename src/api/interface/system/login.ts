@@ -5,6 +5,7 @@ export namespace ILogin {
     password: string;
     clientId: string;
     grantType: string;
+    code: string;
   }
 
   export interface LoginInfo {

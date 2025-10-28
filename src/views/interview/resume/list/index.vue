@@ -2,12 +2,13 @@
   <div class="table-box">
     <ProTable
       ref="proTableRef"
-      title="简历表"
+      :title="t('interview.resume.title')"
       :indent="20"
       :columns="columns"
       :search-columns="searchColumns"
       :request-api="getTableList"
       row-key="id"
+      :key="i18nKey"
     >
       <template #tableHeader="scope">
         <el-button
@@ -17,7 +18,7 @@
           plain
           @click="importData"
         >
-          导入
+          {{ t('table.import') }}
         </el-button>
         <el-button
           v-auth="'resume.export'"
@@ -26,7 +27,7 @@
           plain
           @click="downloadFile"
         >
-          导出
+          {{ t('table.export') }}
         </el-button>
       </template>
       <template #operation="{ row }">
@@ -37,16 +38,7 @@
           :icon="EditPen"
           @click="openAddEdit('编辑简历表', row, false)"
         >
-          编辑
-        </el-button>
-        <el-button
-            v-auth="'resume.remove'"
-          type="primary"
-          link
-          :icon="Delete"
-          @click="deleteInfo(row)"
-        >
-          删除
+        {{ t('common.edit') }}
         </el-button>
       </template>
       <!-- 添加 url 列的自定义渲染 -->
@@ -57,7 +49,7 @@
           target="_blank"
           :underline="false"
         >
-          查看简历
+          {{ t('interview.resume.view') }}
         </el-link>
       </template>
     </ProTable>
@@ -67,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   Delete,
   EditPen,
@@ -91,27 +83,30 @@ import type { IResume } from '@/api/interface/interview/resume';
 import ImportExcel from '@/components/ImportExcel/index.vue';
 import { downloadTemplate } from '@/api/modules/system/common';
 import { useDownload } from "@/hooks/useDownload";
+import { useI18n } from 'vue-i18n'
 
-defineOptions({
-  name: 'ResumeView'
-})
+const { t, locale } = useI18n()
+
+// 添加一个响应式变量作为组件的key，当语言变化时强制重新渲染
+const i18nKey = computed(() => locale.value)
 
 const proTableRef = ref<ProTableInstance>();
 
-// 表格配置项
-const columns: ColumnProps<IResume.Row>[] = [
-  { type: 'selection', width: 80 },
-  { prop: 'id', label: '主键', width: 80 },
-  { prop: 'text', label: '文本内容' },
-  { prop: 'createId', label: '创建人', width: 100 },
-  { prop: 'url', label: '简历文件', width: 120 },
-  { prop: 'operation', label: '操作', width: 250, fixed: 'right' }
-]
-// 搜索条件项
-const searchColumns: SearchProps[] = [
-  { prop: 'url', label: '文件地址', el: 'input' },
-  { prop: 'text', label: '文本内容', el: 'input' },
-]
+// 使用 computed 让列配置变成响应式的，但保持原始的 prop 名称不变
+const columns = computed<ColumnProps<IResume.Row>[]>(() => [
+  { type: 'selection' as const, width: 80 },
+  { prop: 'id', label: t('table.index'), width: 80 },
+  { prop: 'text', label: t('table.content') },
+  { prop: 'createId', label: t('table.createId'), width: 100 },
+  { prop: 'url', label: t('table.file'), width: 120 },
+  { prop: 'operation', label: t('table.operation'), width: 250, fixed: 'right' }
+]);
+
+// 搜索条件
+const searchColumns = computed<SearchProps[]>(() => [
+  { prop: 'text', label: t('table.text'), el: 'input' as const },
+]);
+
 // 获取table列表
 const getTableList = (params: IResume.Query) => {
   let newParams = formatParams(params);

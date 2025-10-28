@@ -1,7 +1,15 @@
 import { useUserStore } from '@/stores/modules/user';
 import { defineStore } from 'pinia';
 import mittBus from '@/utils/mittBus';
-import { CHANNEL_DEFAULT, CHANNEL_KICK_OFF, UPGRADE_CHANNEL } from '@/config/consts';
+import {
+  CHANNEL_DEFAULT,
+  CHANNEL_KICK_OFF,
+  UPGRADE_CHANNEL,
+  MOCK_INTERVIEW_CHANNEL,
+  QUIZ_PRACTICE_CHANNEL,
+  IELTS_MOCK_CHANNEL,
+  RESEARCH_CHANNEL
+} from '@/config/consts';
 import { LOGIN_URL } from '@/config';
 import router from '@/router';
 import { ref } from 'vue';
@@ -40,6 +48,8 @@ export const useSocketStore = defineStore('socket', () => {
     const { data } = event;
     const userStore = useUserStore();
     const authStore = useAuthStore();
+
+    console.log('接收到的消息：', event)
     try {
       const res = JSON.parse(data);
       switch (res.channel) {
@@ -74,11 +84,21 @@ export const useSocketStore = defineStore('socket', () => {
             }
           });
           break;
-
+        case MOCK_INTERVIEW_CHANNEL:
+          mittBus.emit(`socket.${MOCK_INTERVIEW_CHANNEL}`, res.data);
+          break;
+        case QUIZ_PRACTICE_CHANNEL:
+          mittBus.emit(`socket.${QUIZ_PRACTICE_CHANNEL}`, res.data);
+          break;
+        case IELTS_MOCK_CHANNEL:
+          mittBus.emit(`socket.${IELTS_MOCK_CHANNEL}`, res.data);
+          break;
+        case RESEARCH_CHANNEL:
+          mittBus.emit(`socket.${RESEARCH_CHANNEL}`, res.data);
+          break;
         default:
           mittBus.emit(`socket.${res.channel}`, res.data);
       }
-      console.log('接收到的消息：', res);
     } catch (e) {
       /* empty */
     }

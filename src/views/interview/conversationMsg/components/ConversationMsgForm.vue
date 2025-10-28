@@ -14,10 +14,10 @@
       :model="paramsProps.row"
       @submit.enter.prevent="handleSubmit"
     >
-      <el-form-item label="会话id" prop="conversationId">
+      <el-form-item :label="t('table.conversationId')" prop="conversationId">
         <el-input
           v-model="paramsProps.row.conversationId"
-          placeholder="请填写会话id"
+          :placeholder="t('interview.conversation.idPlaceholder')"
           clearable
         ></el-input>
       </el-form-item>
@@ -34,15 +34,18 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="visible = false"> 取消</el-button>
-      <el-button type="primary" @click="handleSubmit"> 确定</el-button>
+      <el-button @click="visible = false">{{ t('common.cancel') }}</el-button>
+      <el-button type="primary" @click="handleSubmit">{{ t('common.confirm') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { type ElForm, ElMessage } from 'element-plus'
+
+const { t } = useI18n()
 
 defineOptions({
     name: 'ConversationMsgForm'

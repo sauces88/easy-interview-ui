@@ -14,3 +14,7 @@ export const getImageCodeApi = () => {
 export const verifyImageCodeApi = (params: ICaptcha.verifyImageParams) => {
   return http.post(ADMIN_MODULE + `/captcha/check`, params, { loading: false });
 };
+//发送邮箱验证码
+export const sendVerificationCode  = (params: {email: string}) => {
+  return http.post(ADMIN_MODULE + `/captcha/send/${params.email}`, {}, { loading: false });
+}

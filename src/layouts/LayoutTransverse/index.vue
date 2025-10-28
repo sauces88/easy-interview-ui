@@ -3,7 +3,7 @@
   <el-container class="layout">
     <el-header>
       <div class="logo flx-center">
-        <img class="logo-img" src="@/assets/images/logo.svg" alt="logo" />
+        <img class="logo-img" :src="logoUrl" alt="logo" />
         <span class="logo-text">{{ title }}</span>
       </div>
       <el-menu mode="horizontal" :router="false" :default-active="activeMenu">
@@ -15,7 +15,7 @@
                 <SvgIcon v-if="subItem.meta?.icon.startsWith('svg-')" :name="subItem.meta?.icon.substring(4)" />
                 <component v-else :is="subItem.meta?.icon" />
               </el-icon>
-              <span>{{ subItem.meta.title }}</span>
+              <span>{{ getMenuTitle(subItem) }}</span>
             </template>
             <SubMenu :menu-list="subItem.children" />
           </el-sub-menu>
@@ -25,7 +25,7 @@
               <component v-else :is="subItem.meta?.icon" />
             </el-icon>
             <template #title>
-              <span>{{ subItem.meta.title }}</span>
+              <span>{{ getMenuTitle(subItem) }}</span>
             </template>
           </el-menu-item>
         </template>
@@ -44,11 +44,22 @@ import Main from '@/layouts/components/Main/index.vue';
 import ToolBarRight from '@/layouts/components/Header/ToolBarRight.vue';
 import SubMenu from '@/layouts/components/Menu/SubMenu.vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
+import { getMenuTitle } from '@/utils/i18n';
+import logo from '@/assets/images/logo.png';
+import logo2 from '@/assets/images/logo2.png';
+import logo3 from '@/assets/images/logo3.png';
+
 defineOptions({
   name: 'LayoutTransverse'
 });
 
 const title = import.meta.env.VITE_APP_TITLE;
+const logoUrl = computed(() => {
+  const hostname = window.location.hostname;
+  if (hostname === 'speakx.gealam.com') return logo2;
+  if (hostname === 'jinli.gealam.com') return logo3;
+  return logo;
+});
 
 const route = useRoute();
 const router = useRouter();

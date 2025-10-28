@@ -8,7 +8,7 @@
               <SvgIcon v-if="item.icon.startsWith('svg-')" :name="item.icon.substring(4)" />
               <component v-else :is="item.icon" />
             </el-icon>
-            {{ item.title }}
+            {{ getMenuTitle(item) }}
           </template>
         </el-tab-pane>
       </el-tabs>
@@ -26,6 +26,7 @@ import { useAuthStore } from '@/stores/modules/auth';
 import { useKeepAliveStore } from '@/stores/modules/keepAlive';
 import MoreButton from './components/MoreButton.vue';
 import { useAppStore } from '@/stores/modules/app';
+import { getMenuTitle } from '@/utils/i18n';
 import type { TabsMenuProps } from '@/stores/interface/tabs';
 import type { TabPaneName, TabsPaneContext } from 'element-plus';
 import SvgIcon from '@/components/SvgIcon/index.vue';
@@ -41,7 +42,9 @@ const appStore = useAppStore();
 const keepAliveStore = useKeepAliveStore();
 
 const tabsMenuValue = ref(route.fullPath);
-const tabsMenuList = computed(() => tabStore.tabsMenuList);
+const tabsMenuList = computed(() => {
+  return tabStore.tabsMenuList.filter(item => item.path !== '/home/index#');
+});
 const tabsIcon = computed(() => appStore.tabsIcon);
 
 onMounted(() => {
@@ -51,21 +54,22 @@ onMounted(() => {
 
 // 监听路由的变化（防止浏览器后退/前进不变化 tabsMenuValue）
 watch(
-  () => route.fullPath,
-  () => {
-    if (route.meta.isFull === 'T') return;
-    tabsMenuValue.value = route.fullPath;
-    const tabsParams: TabsMenuProps = {
-      icon: route.meta.icon as string,
-      title: route.meta.title as string,
-      path: route.fullPath,
-      name: route.name as string,
-      close: route.meta.isAffix !== 'T',
-      isKeepAlive: route.meta.isKeepAlive === 'T'
-    };
-    tabStore.addTabs(tabsParams);
-  },
-  { immediate: true }
+    () => route.fullPath,
+    () => {
+      if (route.meta.isFull === 'T') return;
+      tabsMenuValue.value = route.fullPath;
+      const tabsParams: TabsMenuProps = {
+        icon: route.meta.icon as string,
+        title: route.meta.title as string,
+        titleUs: route.meta.titleUs as string,
+        path: route.fullPath,
+        name: route.name as string,
+        close: route.meta.isAffix !== 'T',
+        isKeepAlive: route.meta.isKeepAlive === 'T'
+      };
+      tabStore.addTabs(tabsParams);
+    },
+    { immediate: true }
 );
 
 // tabs 拖拽排序
@@ -89,6 +93,7 @@ const initTabs = () => {
       const tabsParams = {
         icon: item.meta.icon,
         title: item.meta.title,
+        titleUs: item.meta.titleUs,
         path: item.path,
         name: item.name,
         close: item.meta.isAffix !== 'T',

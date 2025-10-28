@@ -9,6 +9,8 @@ import { useUserStore } from '@/stores/modules/user';
 import { useAuthStore } from '@/stores/modules/auth';
 import { useSocketStore } from '@/stores/modules/socket';
 import { ElMessage } from 'element-plus';
+import { useAppStore } from '@/stores/modules/app';
+import { getBrowserLang } from '@/utils';
 
 export interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
   loading?: boolean;
@@ -39,10 +41,13 @@ class RequestHttp {
     this.service.interceptors.request.use(
       (config: CustomAxiosRequestConfig) => {
         const userStore = useUserStore();
-        // 当前请求不需要显示 loading，在 api 服务中通过指定的第三个参数: { loading: false } 来控制
-        // config.loading !== false && showFullScreenLoading()
+        const appStore = useAppStore();
+
         if (config.headers && typeof config.headers.set === 'function') {
           config.headers.set('Authorization', 'Bearer ' + userStore.token);
+          // 从 store 获取语言设置，如果没有则使用默认值
+          const currentLang = appStore.language || getBrowserLang();
+          config.headers.set('locale', currentLang);
         }
         return config;
       },

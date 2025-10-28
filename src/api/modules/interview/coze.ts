@@ -8,7 +8,7 @@ import { EventSourcePolyfill } from 'event-source-polyfill'
  * 获取最后一次会话
  */
 export const getLastConversation = (botId: string) => {
-  return http.get<ICoze.ConversationVO>(ADMIN_MODULE + `/coze/conversation/last/${botId}`)
+  return http.get<ICoze.ConversationVO[]>(ADMIN_MODULE + `/coze/conversation/last/${botId}`)
 }
 
 /**
@@ -22,14 +22,14 @@ export const completeConversation = (id: number) => {
  * 创建会话
  */
 export const createConversation = (botId: string) => {
-  return http.post<ICoze.ConversationVO>(ADMIN_MODULE + `/coze/conversation/create/${botId}`)
+  return http.post<ICoze.ConversationVO[]>(ADMIN_MODULE + `/coze/conversation/create/${botId}`)
 }
 
 /**
- * 获取消息列表
+ * 获取会话的所有消息（新API）
  */
-export const getMessageList = (params: ICoze.MessageQuery) => {
-  return http.get<ICoze.PageResult<ICoze.MessageResponse>>(ADMIN_MODULE + '/coze/message', params)
+export const getAllMessages = (conversationId: string) => {
+  return http.get<ICoze.MessageResponse[]>(ADMIN_MODULE + `/coze/message/${conversationId}`)
 }
 
 /**
@@ -37,17 +37,18 @@ export const getMessageList = (params: ICoze.MessageQuery) => {
  */
 export const sendStreamMessage = (data: ICoze.ChatRequest, callbacks: {
   onMessage?: (eventData: any) => void
-  onError?: (error: Event) => void
+  onError?: (error: MessageEvent) => void
   onComplete?: () => void
 }) => {
   const params = new URLSearchParams({
     conversationId: data.conversationId,
-    content: data.content
+    content: data.content,
+    audioFlag: data.audioFlag.toString()
   }).toString()
 
   const BASE_URL = import.meta.env.VITE_API_URL
   const userStore = useUserStore()
-  
+
   // 创建 EventSource 实例,添加 token
   const source = new EventSourcePolyfill(`${BASE_URL}${ADMIN_MODULE}/coze/stream-chat?${params}`, {
     headers: {
@@ -55,42 +56,43 @@ export const sendStreamMessage = (data: ICoze.ChatRequest, callbacks: {
     }
   })
 
-  // 监听所有类型的事件
-  source.onmessage = (event) => {
-    console.log('默认事件:', event)
-  }
-
   // 监听文本事件
-  source.addEventListener('text', (event) => {
+  source.addEventListener('text.delta', (event) => {
     try {
-      callbacks.onMessage?.({ type: 'text', content: event.data })
+      callbacks.onMessage?.({ type: 'text.delta', content: (event as MessageEvent).data })
     } catch (e) {
       console.error('处理文本事件失败：', e)
     }
   })
 
   // 监听文本完成事件
-  source.addEventListener('text.done', (event) => {
+  source.addEventListener('text.completed', () => {
     try {
-      callbacks.onMessage?.({ type: 'text.done' })
+      callbacks.onMessage?.({ type: 'text.completed' })
+      // 如果不需要音频，则在文本完成时关闭连接
+      if (!data.audioFlag) {
+        source.close()
+        callbacks.onComplete?.()
+      }
     } catch (e) {
       console.error('处理文本完成事件失败：', e)
     }
   })
 
   // 监听音频事件
-  source.addEventListener('audio', (event) => {
+  source.addEventListener('audio.delta', (event) => {
     try {
-      callbacks.onMessage?.({ type: 'audio', content: event.data })
+      callbacks.onMessage?.({ type: 'audio.delta', content: (event as MessageEvent).data })
     } catch (e) {
       console.error('处理音频事件失败：', e)
     }
   })
 
   // 监听音频完成事件
-  source.addEventListener('audio.done', (event) => {
+  source.addEventListener('audio.completed', () => {
     try {
-      callbacks.onMessage?.({ type: 'audio.done' })
+      callbacks.onMessage?.({ type: 'audio.completed' })
+      // 音频完成时一定关闭连接
       source.close()
       callbacks.onComplete?.()
     } catch (e) {
@@ -98,10 +100,11 @@ export const sendStreamMessage = (data: ICoze.ChatRequest, callbacks: {
     }
   })
 
-  source.addEventListener('error', (error: Event) => {
-    console.error('SSE 连接错误：', error)
+  source.addEventListener('error', (event) => {
+    console.error('SSE 连接错误:', event)
     source.close()
-    callbacks.onError?.(error)
+    // @ts-expect-error: 这里的类型不匹配，待修复
+    callbacks.onError?.(event)
   })
 
   // 返回清理函数

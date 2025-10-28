@@ -1,5 +1,12 @@
 <template>
-  <el-dialog v-model="visible" :title="`${paramsProps.title}`" :destroy-on-close="true" width="800px" draggable append-to-body>
+  <el-dialog
+    v-model="visible"
+    :title="`${paramsProps.title}`"
+    :destroy-on-close="true"
+    width="800px"
+    draggable
+    append-to-body
+  >
     <el-form
       ref="ruleFormRef"
       label-width="100px"
@@ -8,7 +15,10 @@
       :model="paramsProps.row"
       @submit.enter.prevent="handleSubmit"
     >
-      <el-form-item label="上级" prop="pid">
+      <el-form-item
+        label="上级"
+        prop="pid"
+      >
         <el-tree-select
           v-model="paramsProps.row.pid"
           :data="parentMenus"
@@ -21,7 +31,10 @@
         />
       </el-form-item>
 
-      <el-form-item label="类型" prop="menuTypeCd">
+      <el-form-item
+        label="类型"
+        prop="menuTypeCd"
+      >
         <el-radio-group v-model="paramsProps.row.menuTypeCd">
           <el-radio-button :value="MENU_DIR">
             {{ menuLabel(MENU_DIR, '目录') }}
@@ -35,102 +48,271 @@
         </el-radio-group>
       </el-form-item>
 
-      <el-form-item label="图标" prop="icon" v-if="paramsProps.row.menuTypeCd !== MENU_BTN">
-        <IconChoose v-model="paramsProps.row.icon" placeholder="请填写图标" clearable />
+      <el-form-item
+        label="图标"
+        prop="icon"
+        v-if="paramsProps.row.menuTypeCd !== MENU_BTN"
+      >
+        <IconChoose
+          v-model="paramsProps.row.icon"
+          placeholder="请填写图标"
+          clearable
+        />
       </el-form-item>
 
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="名称" prop="title">
-            <el-input v-model="paramsProps.row.title" placeholder="请填写名称" clearable />
+          <el-form-item
+            label="名称"
+            prop="title"
+          >
+            <el-input
+              v-model="paramsProps.row.title"
+              placeholder="请填写名称"
+              clearable
+            />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="排序" prop="sort">
-            <el-input-number v-model="paramsProps.row.sort" :precision="0" :min="1" :max="999999" />
+          <el-form-item
+            label="名称(国际化)"
+            prop="titleUs"
+          >
+            <el-input
+              v-model="paramsProps.row.titleUs"
+              placeholder="请填写名称(英文)"
+              clearable
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item
+            label="排序"
+            prop="sort"
+          >
+            <el-input-number
+              v-model="paramsProps.row.sort"
+              :precision="0"
+              :min="1"
+              :max="999999"
+            />
           </el-form-item>
         </el-col>
       </el-row>
 
       <el-row :gutter="20">
-        <el-col :span="12" v-if="paramsProps.row.menuTypeCd !== MENU_BTN">
-          <el-form-item label="是否外链" prop="isLink">
+        <el-col
+          :span="12"
+          v-if="paramsProps.row.menuTypeCd !== MENU_BTN"
+        >
+          <el-form-item
+            label="是否外链"
+            prop="isLink"
+          >
             <el-radio-group v-model="paramsProps.row.isLink">
-              <el-radio value="T" border> 是 </el-radio>
-              <el-radio value="F" border> 否 </el-radio>
+              <el-radio
+                value="T"
+                border
+              >
+                是
+              </el-radio>
+              <el-radio
+                value="F"
+                border
+              >
+                否
+              </el-radio>
             </el-radio-group>
           </el-form-item>
         </el-col>
 
-        <el-col :span="12" v-if="paramsProps.row.menuTypeCd !== MENU_BTN && paramsProps.row.isLink === 'T'">
-          <el-form-item label="外链地址" prop="redirect">
-            <el-input v-model="paramsProps.row.redirect" placeholder="请填写外链地址" clearable />
+        <el-col
+          :span="12"
+          v-if="paramsProps.row.menuTypeCd !== MENU_BTN && paramsProps.row.isLink === 'T'"
+        >
+          <el-form-item
+            label="外链地址"
+            prop="redirect"
+          >
+            <el-input
+              v-model="paramsProps.row.redirect"
+              placeholder="请填写外链地址"
+              clearable
+            />
           </el-form-item>
         </el-col>
 
-        <el-col :span="12" v-if="paramsProps.row.menuTypeCd !== MENU_BTN">
-          <el-form-item label="路由名称" prop="name">
-            <el-input v-model="paramsProps.row.name" placeholder="请填写路由名称" clearable />
+        <el-col
+          :span="12"
+          v-if="paramsProps.row.menuTypeCd !== MENU_BTN"
+        >
+          <el-form-item
+            label="路由名称"
+            prop="name"
+          >
+            <el-input
+              v-model="paramsProps.row.name"
+              placeholder="请填写路由名称"
+              clearable
+            />
           </el-form-item>
         </el-col>
 
-        <el-col :span="12" v-if="paramsProps.row.menuTypeCd !== MENU_BTN">
-          <el-form-item label="路由地址" prop="path">
-            <el-input v-model="paramsProps.row.path" placeholder="请填写路由地址" clearable />
+        <el-col
+          :span="12"
+          v-if="paramsProps.row.menuTypeCd !== MENU_BTN"
+        >
+          <el-form-item
+            label="路由地址"
+            prop="path"
+          >
+            <el-input
+              v-model="paramsProps.row.path"
+              placeholder="请填写路由地址"
+              clearable
+            />
           </el-form-item>
         </el-col>
 
-        <el-col :span="12" v-if="paramsProps.row.menuTypeCd === MENU_PAGE">
-          <el-form-item label="组件路径" prop="component">
-            <el-input v-model="paramsProps.row.component" placeholder="请填写组件路径" clearable />
+        <el-col
+          :span="12"
+          v-if="paramsProps.row.menuTypeCd === MENU_PAGE"
+        >
+          <el-form-item
+            label="组件路径"
+            prop="component"
+          >
+            <el-input
+              v-model="paramsProps.row.component"
+              placeholder="请填写组件路径"
+              clearable
+            />
           </el-form-item>
         </el-col>
 
-        <el-col :span="12" v-if="paramsProps.row.menuTypeCd !== MENU_DIR">
-          <el-form-item label="权限" prop="permissions">
-            <el-input v-model="paramsProps.row.permissions" placeholder="请填写权限" clearable />
+        <el-col
+          :span="12"
+          v-if="paramsProps.row.menuTypeCd !== MENU_DIR"
+        >
+          <el-form-item
+            label="权限"
+            prop="permissions"
+          >
+            <el-input
+              v-model="paramsProps.row.permissions"
+              placeholder="请填写权限"
+              clearable
+            />
           </el-form-item>
         </el-col>
 
         <el-col :span="12">
-          <el-form-item label="显示状态" prop="isHidden">
+          <el-form-item
+            label="显示状态"
+            prop="isHidden"
+          >
             <el-radio-group v-model="paramsProps.row.isHidden">
-              <el-radio value="F" border> 显示 </el-radio>
-              <el-radio value="T" border> 隐藏 </el-radio>
+              <el-radio
+                value="F"
+                border
+              >
+                显示
+              </el-radio>
+              <el-radio
+                value="T"
+                border
+              >
+                隐藏
+              </el-radio>
             </el-radio-group>
           </el-form-item>
         </el-col>
 
-        <el-col :span="12" v-if="paramsProps.row.menuTypeCd === MENU_PAGE">
-          <el-form-item label="是否全屏" prop="isFull">
+        <el-col
+          :span="12"
+          v-if="paramsProps.row.menuTypeCd === MENU_PAGE"
+        >
+          <el-form-item
+            label="是否全屏"
+            prop="isFull"
+          >
             <el-radio-group v-model="paramsProps.row.isFull">
-              <el-radio value="T" border> 是 </el-radio>
-              <el-radio value="F" border> 否 </el-radio>
+              <el-radio
+                value="T"
+                border
+              >
+                是
+              </el-radio>
+              <el-radio
+                value="F"
+                border
+              >
+                否
+              </el-radio>
             </el-radio-group>
           </el-form-item>
         </el-col>
 
-        <el-col :span="12" v-if="paramsProps.row.menuTypeCd === MENU_PAGE">
-          <el-form-item label="固定标签页" prop="isAffix">
+        <el-col
+          :span="12"
+          v-if="paramsProps.row.menuTypeCd === MENU_PAGE"
+        >
+          <el-form-item
+            label="固定标签页"
+            prop="isAffix"
+          >
             <el-radio-group v-model="paramsProps.row.isAffix">
-              <el-radio value="T" border> 是 </el-radio>
-              <el-radio value="F" border> 否 </el-radio>
+              <el-radio
+                value="T"
+                border
+              >
+                是
+              </el-radio>
+              <el-radio
+                value="F"
+                border
+              >
+                否
+              </el-radio>
             </el-radio-group>
           </el-form-item>
         </el-col>
-        <el-col :span="12" v-if="paramsProps.row.menuTypeCd === MENU_PAGE">
-          <el-form-item label="是否缓存" prop="isKeepAlive">
+        <el-col
+          :span="12"
+          v-if="paramsProps.row.menuTypeCd === MENU_PAGE"
+        >
+          <el-form-item
+            label="是否缓存"
+            prop="isKeepAlive"
+          >
             <el-radio-group v-model="paramsProps.row.isKeepAlive">
-              <el-radio value="T" border> 是 </el-radio>
-              <el-radio value="F" border> 否 </el-radio>
+              <el-radio
+                value="T"
+                border
+              >
+                是
+              </el-radio>
+              <el-radio
+                value="F"
+                border
+              >
+                否
+              </el-radio>
             </el-radio-group>
           </el-form-item>
         </el-col>
       </el-row>
     </el-form>
     <template #footer>
-      <el-button @click="visible = false"> 取消 </el-button>
-      <el-button type="primary" @click="handleSubmit"> 确定 </el-button>
+      <el-button @click="visible = false">
+        取消
+      </el-button>
+      <el-button
+        type="primary"
+        @click="handleSubmit"
+      >
+        确定
+      </el-button>
     </template>
   </el-dialog>
 </template>
@@ -193,11 +375,13 @@ watch(
           ruleData['name'] = [{ required: true, message: '请填写路由名称' }];
           ruleData['path'] = [{ required: true, message: '请填写路由地址' }];
           ruleData['component'] = [{ required: true, message: '请填写组件路径' }];
-          ruleData['permissions'] = [{ validator: validatePermission, trigger: 'blur' }];
+          //ruleData['permissions'] = [{ validator: validatePermission, trigger: 'blur' }];
+          ruleData['permissions'] = [{ message: '请填写权限' }];
         }
         break;
       case MENU_BTN:
-        ruleData['permissions'] = [{ validator: validatePermission, trigger: 'blur' }];
+        //ruleData['permissions'] = [{ validator: validatePermission, trigger: 'blur' }];
+        ruleData['permissions'] = [{ message: '请填写权限' }];
     }
     rules.value = ruleData;
 

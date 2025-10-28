@@ -2,12 +2,13 @@
   <div class="table-box">
     <ProTable
       ref="proTableRef"
-      title="聊天记录表"
+      :title="t('message.title')"
       :indent="20"
       :columns="columns"
       :search-columns="searchColumns"
       :request-api="getTableList"
       row-key="id"
+      :key="i18nKey"
     >
       <!-- 表格 header 按钮 -->
       <template #tableHeader="scope">
@@ -19,7 +20,7 @@
           :disabled="!scope.isSelected"
           @click="batchDelete(scope.selectedListIds)"
         >
-          批量删除
+          {{ t('message.batchDelete') }}
         </el-button>
       </template>
       <template #operation="{ row }">
@@ -29,7 +30,7 @@
           :icon="View"
           @click="openDetail(row)"
         >
-          详情
+          {{ t('table.detail') }}
         </el-button>
         <el-button
           v-auth="'conversation.msg.remove'"
@@ -38,69 +39,102 @@
           :icon="Delete"
           @click="deleteInfo(row)"
         >
-          删除
+          {{ t('table.delete') }}
         </el-button>
       </template>
     </ProTable>
     <ConversationMsgForm ref="conversationMsgRef" />
     <ImportExcel ref="ImportExcelRef" />
 
-    <!-- 添加消息详情抽屉 -->
+    <!-- 修改消息详情抽屉 -->
     <el-drawer
       v-model="drawerVisible"
-      title="消息详情"
-      size="50%"
+      :title="t('message.detail')"
+      size="100%"
     >
-      <div class="message-list">
-        <div
-          v-for="(msg, index) in messageList"
-          :key="index"
-          :class="['message-item', msg.role]"
-        >
-          <div class="message-content">
-            <div class="message-header">
-              <span class="time">{{ formatTime(msg.created_at) }}</span>
-            </div>
-            <div class="message-text">{{ msg.content }}</div>
-          </div>
-        </div>
+      <div class="chat-container">
+        <el-row :gutter="20" class="h-full">
+          <!-- 左侧辅助会话(小助手) -->
+          <el-col :span="12" class="h-full">
+            <el-card class="chat-card" shadow="hover">
+              <template #header>
+                <div class="card-header">
+                  <span>{{ t('message.assistant') }}</span>
+                </div>
+              </template>
+              <AssistantChatList
+                :messages="assistantMessages"
+                :is-blurred="false"
+              />
+            </el-card>
+          </el-col>
+
+          <!-- 右侧主会话 -->
+          <el-col :span="12" class="h-full">
+            <el-card class="chat-card" shadow="hover">
+              <template #header>
+                <div class="card-header">
+                  <span>{{ t('message.mainChat') }}</span>
+                </div>
+              </template>
+              <div class="message-list">
+                <div
+                  v-for="(msg, index) in mainMessages"
+                  :key="index"
+                  class="qa-item"
+                >
+                  <div class="message-content" :class="msg.role">
+                    <p>{{ msg.content }}</p>
+                  </div>
+                  <div class="time-wrapper">
+                    <span class="time">{{ formatTime(msg.created_at) }}</span>
+                  </div>
+                </div>
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
       </div>
     </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import {ref} from 'vue'
+import {ref, computed} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {Delete, View} from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
-import {getConversationMsgListApi, getConversationMsgDetailApi, removeConversationMsgApi} from '@/api/modules/interview/conversationMsg';
+import {getConversationMsgListApi, getConversationMsgExtraDetailApi, removeConversationMsgApi} from '@/api/modules/interview/conversationMsg';
 import {useHandleData} from '@/hooks/useHandleData';
 import ConversationMsgForm from '@/views/interview/conversationMsg/components/ConversationMsgForm.vue';
 import type {ColumnProps, ProTableInstance, SearchProps} from '@/components/ProTable/interface';
 import type {IConversationMsg} from '@/api/interface/interview/conversationMsg';
 import ImportExcel from '@/components/ImportExcel/index.vue';
+import ChatList from '@/views/interview/start/components/ChatList.vue'
+import AssistantChatList from '@/views/interview/start/components/AssistantChatList.vue'
+import dayjs from 'dayjs'
+import { useTableI18n } from '@/hooks/useTableI18n'
 
-defineOptions({
-  name: 'ConversationMsgView'
-})
+const { t, i18nKey } = useTableI18n()
+
 const proTableRef = ref<ProTableInstance>();
 
-// 表格配置项
-const columns: ColumnProps<IConversationMsg.ListRow>[] = [
+// 表格配置项 - 改为计算属性
+const columns = computed<ColumnProps<IConversationMsg.ListRow>[]>(() => [
   { type: 'selection', width: 80 },
-  { prop: 'id', label: '主键' },
-  { prop: 'conversationId', label: '会话id' },
-  { prop: 'count', label: '消息数量' },
-  { prop: 'createId', label: '创建人' },
-  { prop: 'createTime', label: '创建时间' },
-  { prop: 'operation', label: '操作', width: 250, fixed: 'right' }
-]
-// 搜索条件项
-const searchColumns: SearchProps[] = [
-  { prop: 'conversationId', label: '会话id', el: 'input' },
-  { prop: 'createTime', label: '创建时间', el: 'date-picker', props: { type: 'datetimerange' } },
-  { prop: 'createId', label: '创建人', el: 'input' }
-]
+  { prop: 'id', label: t('table.index') },
+  { prop: 'conversationId', label: t('table.conversationId') },
+  { prop: 'count', label: t('table.count') },
+  { prop: 'createId', label: t('system.user.createId') },
+  { prop: 'createTime', label: t('table.createTime') },
+  { prop: 'operation', label: t('table.operation'), width: 250, fixed: 'right' }
+])
+// 搜索条件项 - 改为计算属性
+const searchColumns = computed<SearchProps[]>(() => [
+  { prop: 'conversationId', label: t('interview.conversation.id'), el: 'input' },
+  { prop: 'createTime', label: t('table.createTime'), el: 'date-picker', props: { type: 'datetimerange' } },
+  { prop: 'createId', label: t('table.createId'), el: 'input' }
+])
 
 // 获取table列表
 const getTableList = (params: IConversationMsg.Query) => {
@@ -120,18 +154,43 @@ const formatParams = (params: IConversationMsg.Query) =>{
 // 打开 drawer(新增、查看、编辑)
 const conversationMsgRef = ref<InstanceType<typeof ConversationMsgForm>>()
 
-// 添加消息详情相关的状态和方法
+// 修改消息列表相关的状态
 const drawerVisible = ref(false)
-const messageList = ref<IConversationMsg.Message[]>([])
 
-const formatTime = (timestamp: number) => {
-  return new Date(timestamp * 1000).toLocaleString()
+// 修改类型定义，确保 created_at 的类型兼容
+interface Message extends Omit<IConversationMsg.Message, 'created_at'> {
+  created_at: string;
 }
 
+// 修改状态的类型
+const mainMessages = ref<Message[]>([])
+const assistantMessages = ref<Message[]>([])
+
+// 修改时间格式化函数
+const formatTime = (timestamp: string) => {
+  // 将时间戳转换为毫秒
+  const date = new Date(+timestamp * 1000)
+  // 使用 dayjs 格式化，显示年月日 时:分:秒
+  return dayjs(date).format('YYYY-MM-DD HH:mm:ss')
+}
+
+// 修改打开详情的方法
 const openDetail = async (row: IConversationMsg.ListRow) => {
   try {
-    const { data } = await getConversationMsgDetailApi({ id: row.id! })
-    messageList.value = data.messages
+    const { data } = await getConversationMsgExtraDetailApi({ id: row.id! })
+    const mainConversation = data.find(item => item.id === row.id)
+    const assistantConversation = data.find(item => item.id !== row.id)
+
+    // 转换时间戳类型
+    mainMessages.value = mainConversation?.messages.map(msg => ({
+      ...msg,
+      created_at: msg.created_at.toString()
+    })) || []
+    assistantMessages.value = assistantConversation?.messages.map(msg => ({
+      ...msg,
+      created_at: msg.created_at.toString()
+    })) || []
+
     drawerVisible.value = true
   } catch (error) {
     console.error('获取详情失败:', error)
@@ -143,13 +202,17 @@ const deleteInfo = async (params: IConversationMsg.ListRow) => {
   await useHandleData(
     removeConversationMsgApi,
     { ids: [params.id] },
-    `删除【${params.id}】聊天记录表`
+    t('message.deleteConfirm')
   )
   proTableRef.value?.getTableList()
 }
 // 批量删除信息
 const batchDelete = async (ids: (string | number)[]) => {
-  await useHandleData(removeConversationMsgApi, { ids }, '删除所选聊天记录表')
+  await useHandleData(
+    removeConversationMsgApi, 
+    { ids }, 
+    t('message.deleteConfirm')
+  )
   proTableRef.value?.clearSelection()
   proTableRef.value?.getTableList()
 }
@@ -157,54 +220,92 @@ const batchDelete = async (ids: (string | number)[]) => {
 </script>
 
 <style lang="scss" scoped>
-.message-list {
+.chat-container {
+  height: 100%;
   padding: 20px;
 
-  .message-item {
-    margin-bottom: 20px;
+  :deep(.el-row) {
+    margin: 0 !important;
+    height: 100%;
+  }
+
+  :deep(.el-col) {
+    height: 100%;
+  }
+
+  .chat-card {
+    height: 100%;
     display: flex;
+    flex-direction: column;
 
-    &.user {
-      justify-content: flex-end;
-
-      .message-content {
-        background-color: #e3f2fd;
-      }
+    .card-header {
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 12px;
     }
 
-    &.assistant {
-      justify-content: flex-start;
-
-      .message-content {
-        background-color: #f5f5f5;
-      }
+    :deep(.el-card__body) {
+      flex: 1;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
     }
   }
 
-  .message-content {
-    max-width: 80%;
-    padding: 12px;
-    border-radius: 8px;
+  .message-list {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
 
-    .message-header {
-      margin-bottom: 8px;
-      font-size: 14px;
+    .qa-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
 
-      .role {
-        font-weight: bold;
-        margin-right: 10px;
+      .message-content {
+        p {
+          margin: 0;
+          white-space: pre-line;
+          line-height: 1.5;
+          padding: 12px;
+          border-radius: 8px;
+        }
+
+        &.user {
+          align-self: flex-end;
+
+          p {
+            background-color: #e3f2fd;
+          }
+        }
+
+        &.assistant {
+          align-self: flex-start;
+
+          p {
+            background-color: #f5f5f5;
+          }
+        }
       }
 
-      .time {
-        color: #999;
-      }
-    }
+      .time-wrapper {
+        display: flex;
+        justify-content: flex-end;
+        padding: 4px 0;
 
-    .message-text {
-      font-size: 14px;
-      line-height: 1.5;
-      white-space: pre-wrap;
+        .time {
+          font-size: 12px;
+          color: #999;
+        }
+      }
     }
   }
 }
+
+// 移除旧的消息样式
 </style>

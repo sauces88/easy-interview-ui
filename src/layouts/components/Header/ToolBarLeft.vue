@@ -1,6 +1,6 @@
 <template>
   <div class="tool-bar-lf">
-    <CollapseIcon id="collapseIcon" />
+<!--    <CollapseIcon id="collapseIcon" />-->
     <Breadcrumb v-if="appStore.breadcrumb" id="breadcrumb" />
   </div>
 </template>

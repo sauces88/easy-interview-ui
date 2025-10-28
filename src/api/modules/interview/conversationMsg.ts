@@ -34,6 +34,16 @@ export const getConversationMsgDetailApi = (params: { id: number }) => {
 }
 
 /**
+* 获取详情 (包含主会话的记录和辅助会话的记录)
+* @param params
+* @returns {*}
+*/
+export const getConversationMsgExtraDetailApi = (params: { id: number }) => {
+  const { id } = params
+  return http.get<IConversationMsg.DetailRow[]>(ADMIN_MODULE + `/conversation-msg/extra/${id}`)
+}
+
+/**
 * 导入excel
 * @param params
 */

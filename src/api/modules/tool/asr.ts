@@ -6,12 +6,12 @@ import http from '@/api'
  * @param file 音频文件
  * @returns 识别后的文本内容
  */
-export const asrApi = (file: File) => {
+export const flashAsrApi = (file: File) => {
   const formData = new FormData()
   formData.append('file', file)
-  
+
   return http.post<string>(
-    ADMIN_MODULE + '/tool/asr',
+    ADMIN_MODULE + '/tool/flash-asr',
     formData,
     {
       headers: {

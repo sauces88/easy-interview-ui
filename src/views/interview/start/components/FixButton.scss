@@ -1,0 +1,18 @@
+/* 修复测试按钮样式 */
+.测试 {
+  display: inline-block !important;
+  padding: 8px 16px !important;
+  min-width: 60px !important;
+  max-width: fit-content !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 14px !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  background-color: #409eff !important;
+  color: white !important;
+  border-radius: 4px !important;
+  border: none !important;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1) !important;
+} 

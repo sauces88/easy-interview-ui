@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="`${paramsProps.title}`"
+    :title="paramsProps.title"
     :destroy-on-close="true"
     width="1280px"
     draggable
@@ -14,42 +14,41 @@
       :model="paramsProps.row"
       @submit.enter.prevent="handleSubmit"
     >
-      <el-form-item label="文件地址" prop="url">
+      <el-form-item :label="t('interview.resume.fileUrl')" prop="url">
         <el-input
-          disabled="disabled"
+          :disabled="true"
           v-model="paramsProps.row.url"
-          placeholder="请填写文件地址"
+          :placeholder="t('interview.resume.fileUrlPlaceholder')"
           clearable
         ></el-input>
       </el-form-item>
-      <el-form-item label="文本内容" prop="text">
+      <el-form-item :label="t('interview.resume.content')" prop="text">
         <el-input
           type="textarea"
           autosize
           v-model="paramsProps.row.text"
-          placeholder="请填写文本内容"
+          :placeholder="t('interview.resume.contentPlaceholder')"
           clearable
         ></el-input>
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="visible = false"> 取消</el-button>
-      <el-button type="primary" @click="handleSubmit"> 确定</el-button>
+      <el-button @click="visible = false">{{ t('common.cancel') }}</el-button>
+      <el-button type="primary" @click="handleSubmit">{{ t('common.confirm') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { type ElForm, ElMessage } from 'element-plus'
 
-defineOptions({
-    name: 'ResumeForm'
-})
+const { t } = useI18n()
 
 const rules = reactive({
-  url: [{ required: true, message: '请填写文件地址' }],
-  text: [{ required: true, message: '请填写文本内容' }],
+  url: [{ required: true, message: t('validate.required') }],
+  text: [{ required: true, message: t('validate.required') }],
 })
 
 const visible = ref(false)

@@ -6,7 +6,7 @@
           <SvgIcon v-if="subItem.meta?.icon.startsWith('svg-')" :name="subItem.meta?.icon.substring(4)" />
           <component v-else :is="subItem.meta?.icon" />
         </el-icon>
-        <span class="sle">{{ subItem.meta.title }}</span>
+        <span class="sle">{{ getMenuTitle(subItem) }}</span>
       </template>
       <SubMenu :menu-list="subItem.children" />
     </el-sub-menu>
@@ -16,7 +16,7 @@
         <component v-else :is="subItem.meta?.icon" />
       </el-icon>
       <template #title>
-        <span class="sle">{{ subItem.meta.title }}</span>
+        <span class="sle">{{ getMenuTitle(subItem) }}</span>
       </template>
     </el-menu-item>
   </template>
@@ -25,6 +25,8 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import SvgIcon from '@/components/SvgIcon/index.vue';
+import { getMenuTitle } from '@/utils/i18n';
+import { useAppStore } from '@/stores/modules/app';
 
 type Props = {
   menuList: Menu.MenuOptions[];
@@ -33,6 +35,8 @@ type Props = {
 defineProps<Props>();
 
 const router = useRouter();
+const appStore = useAppStore();
+
 const handleClickMenu = (subItem: Menu.MenuOptions) => {
   if (subItem.meta.isLink) return window.open(subItem.meta.isLink, '_blank');
   router.push(subItem.path);

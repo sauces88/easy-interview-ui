@@ -22,6 +22,14 @@ export const CHANNEL_KICK_OFF: string = 'KICK_OFF';
 
 export const UPGRADE_CHANNEL: string = 'UPGRADE_CHANNEL';
 
+export const MOCK_INTERVIEW_CHANNEL: string = 'MOCK_INTERVIEW_CHANNEL';
+
+export const QUIZ_PRACTICE_CHANNEL: string = 'QUIZ_PRACTICE_CHANNEL';
+
+export const IELTS_MOCK_CHANNEL: string = 'IELTS_MOCK_CHANNEL';
+
+export const RESEARCH_CHANNEL: string = 'RESEARCH_CHANNEL';
+
 /**
  * 是否选项
  * @type {[Options,Options]}

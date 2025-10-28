@@ -1,7 +1,7 @@
 <template>
   <div class="footer flx-center">
-    <a href="https://szadmin.cn" target="_blank">
-      Sz-Admin v{{ version }} | Copyright © 2022-{{ new Date().getFullYear() }} 升职哦（sz）
+    <a href="#" target="_blank">
+      Easy-Interview v{{ version }} | Copyright © 2022-{{ new Date().getFullYear() }}
     </a>
   </div>
 </template>
