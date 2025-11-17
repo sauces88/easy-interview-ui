@@ -135,7 +135,7 @@
 
           <!-- 录制按钮 -->
           <div
-            v-else-if="!isRecording && !hasRecording"
+            v-else-if="!isRecording && !hasRecording && submitStatus !== 'error' && submitStatus !== 'processing'"
           >
             <el-button
               v-if="practiceMode && hasPreviousQuiz()"
@@ -205,6 +205,18 @@
               </el-icon>
               <span class="finished-text">{{ t('ielts.quiz.recordingCompleted') }} ({{ formatTime(recordingDuration) }})</span>
             </div>
+
+            <!-- 录制时长提示 -->
+            <div
+              v-if="recordingWarning.type"
+              :class="['recording-duration-warning', recordingWarning.type === 'short' ? 'warning-short' : 'warning-long']"
+            >
+              <el-icon>
+                <WarningFilled />
+              </el-icon>
+              <span>{{ recordingWarning.message }}</span>
+            </div>
+
             <div class="audio-preview">
               <audio
                 :src="recordingUrl"
@@ -245,7 +257,6 @@
             <div class="processing-illustration">
               <img
                 src="@/assets/images/processing.svg"
-                alt="处理中"
                 class="processing-image"
               >
             </div>
@@ -276,67 +287,46 @@
             v-else-if="submitStatus === 'error'"
             class="error-status"
           >
+            <div class="error-content">
+              <div class="error-icon-wrapper">
+                <el-icon class="error-icon">
+                  <CircleClose />
+                </el-icon>
+              </div>
+              <div class="error-title">
+                {{ practiceMode ? t('ielts.quiz.evaluationError') : t('ielts.quiz.voiceAnalysisError') }}
+              </div>
+              <div class="error-description">
+                {{ t('ielts.quiz.errorDescription') }}
+              </div>
+            </div>
+
             <div class="error-actions">
               <el-button
                 v-if="practiceMode"
                 type="primary"
-                class="primary-action-button"
+                :icon="RefreshRight"
                 @click="currentTopicPractice?.result ? reappraiseTopic() : reappraiseQuiz()"
+                text
               >
                 {{ t('ielts.quiz.retryEvaluation') }}
               </el-button>
               <el-button
                 v-else
                 type="primary"
-                class="primary-action-button"
+                :icon="RefreshRight"
                 @click="refreshData"
               >
                 {{ t('ielts.quiz.retryAnalysis') }}
               </el-button>
               <el-button
-                class="secondary-action-button"
+                type="default"
+                :icon="Microphone"
                 @click="tryAgain"
+                text
               >
                 {{ t('ielts.quiz.retryRecording') }}
               </el-button>
-            </div>
-
-            <div class="error-message">
-              {{ practiceMode ? t('ielts.quiz.evaluationError') : t('ielts.quiz.voiceAnalysisError') }}
-            </div>
-          </div>
-
-          <!-- 重新评估状态 -->
-          <div
-            v-else-if="submitStatus === 'reappraising'"
-            class="processing-status"
-          >
-            <div class="processing-indicator">
-              <div class="processing-spinner" />
-              <span class="processing-text">{{ t('ielts.quiz.evaluating') }}</span>
-            </div>
-            <div class="processing-actions">
-              <div class="action-buttons">
-                <el-button
-                  @click="refreshData"
-                  :icon="RefreshRight"
-                  text
-                >
-                  {{ t('ielts.quiz.refreshData') }}
-                </el-button>
-                <el-button
-                  v-if="practiceMode && hasNextQuiz()"
-                  type="primary"
-                  @click="nextQuiz"
-                  :icon="ArrowRight"
-                  text
-                >
-                  {{ t('ielts.quiz.nextQuestion') }}
-                </el-button>
-              </div>
-              <p class="processing-tip">
-                {{ t('ielts.quiz.reevaluationTip') }}
-              </p>
             </div>
           </div>
         </div>
@@ -378,35 +368,6 @@
         </el-button>
       </div>
     </div>
-
-    <!-- 录制时间不足警告对话框 -->
-    <el-dialog
-      v-model="showWarning"
-      :title="t('ielts.quiz.recordingTooShort')"
-      width="400px"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      :show-close="false"
-    >
-      <div class="warning-content">
-        <el-icon class="warning-icon">
-          <WarningFilled />
-        </el-icon>
-        <p>{{ t('ielts.quiz.recordingTooShortTip') }}</p>
-        <p class="min-time-text">
-          {{ t('ielts.quiz.minRecordingTime') }}
-        </p>
-      </div>
-      <template #footer>
-        <span style="text-align: right;">
-          <el-button @click="discardRecording">{{ t('ielts.quiz.discard') }}</el-button>
-          <el-button
-            type="primary"
-            @click="retryRecording"
-          >{{ t('ielts.quiz.rerecord') }}</el-button>
-        </span>
-      </template>
-    </el-dialog>
   </el-dialog>
 
   <!-- 总体评估页面 -->
@@ -442,7 +403,8 @@ import {
   SuccessFilled,
   Upload,
   VideoPause,
-  WarningFilled
+  WarningFilled,
+  CircleClose
 } from '@element-plus/icons-vue'
 import EvaluationResults from './EvaluationResults.vue'
 import OverallEvaluation from './OverallEvaluation.vue'
@@ -493,14 +455,12 @@ const recordingTime = ref(0)
 const recordingDuration = ref(0)
 const recordingTimer = ref<number | null>(null)
 const recordingUrl = ref('')
+const recordingWarning = ref<{ type: 'short' | 'long' | '', message: string }>({ type: '', message: '' })
 
 // 媒体录制相关
 const mediaRecorder = ref<MediaRecorder | null>(null)
 const audioChunks = ref<Blob[]>([])
 const stream = ref<MediaStream | null>(null)
-
-// 警告对话框
-const showWarning = ref(false)
 
 // 音频波形组件引用
 const audioWaveformRef = ref<InstanceType<typeof AudioWaveform> | null>(null)
@@ -509,7 +469,7 @@ const shouldAutoPlayAudio = ref(true) // 控制音频是否自动播放
 
 // 提交后状态管理
 const practiceId = ref<number | null>(null)
-const submitStatus = ref<'idle' | 'processing' | 'completed' | 'error' | 'reappraising'>('idle')
+const submitStatus = ref<'idle' | 'processing' | 'completed' | 'error'>('idle')
 const evaluationResult = ref<any>(null)
 const resultComment = ref('')
 const showingOverallResult = ref(false)
@@ -524,9 +484,12 @@ const isPreviousQuizReady = () => {
   const previousQuizPractice = currentTopicPractice.value.topicPracticeQuizList[currentQuizIndex.value - 1]
   if (!previousQuizPractice) return false
 
-  if (previousQuizPractice.result)
+  // 有录音文件才能查看（无论评估成功还是失败）
+  if (previousQuizPractice.audio) {
     return true
-  return false;
+  }
+
+  return false
 }
 
 // 总体评估组件引用
@@ -534,12 +497,7 @@ const overallEvaluationRef = ref<InstanceType<typeof OverallEvaluation>>()
 
 // 获取最大录制时间（秒）
 const getMaxRecordingTime = () => {
-  return currentQuiz.value?.part === '2001001' ? 30 : 120
-}
-
-// 获取最小录制时间（秒）
-const getMinRecordingTime = () => {
-  return currentQuiz.value?.part === '2001001' ? 15 : 30
+  return currentQuiz.value?.part === '2001001' ? 60 : 120
 }
 
 // 检查未完结的topic练习
@@ -567,11 +525,13 @@ const continuePractice = async () => {
 
     // 检查总体练习是否完成
     const practice = currentTopicPractice.value
+    console.log(`[continuePractice] practice.result="${practice.result}"`)
     if (practice.result) {
       const result = JSON.parse(practice.result)
       if (result.code === '0000') {
         // 总体评估完成，显示结果
         submitStatus.value = 'completed'
+        console.log(`[continuePractice] 总体评估完成，设置状态为 completed`)
         if (practice.evaluation) {
           evaluationResult.value = JSON.parse(practice.evaluation)
         }
@@ -579,13 +539,16 @@ const continuePractice = async () => {
       } else {
         // 总体评估异常，需要检查小题完成情况
         submitStatus.value = 'error'
+        console.log(`[continuePractice] 总体评估异常，设置状态为 error，调用 initializeContinueMode`)
 
         // 初始化显示状态：找到最后一个已完成的小题或第一个未完成的小题
         initializeContinueMode()
       }
     } else {
       // 还没有总体结果，继续练习
+      console.log(`[continuePractice] 没有总体结果，调用 findNextUnfinishedQuiz`)
       findNextUnfinishedQuiz()
+      console.log(`[continuePractice] findNextUnfinishedQuiz 执行完成，当前 submitStatus="${submitStatus.value}"`)
     }
   }
 }
@@ -651,10 +614,45 @@ const findNextUnfinishedQuiz = () => {
     if (!quiz.audio || (quiz.result && JSON.parse(quiz.result).code !== '0000')) {
       currentQuizIndex.value = i
       const quizDetail = quizDetails.value.get(quiz.quizId)
+
+      console.log(`[findNextUnfinishedQuiz] 找到未完成题目 index=${i}, quizId=${quiz.quizId}, audio=${!!quiz.audio}, result=${quiz.result}, quizDetail=${!!quizDetail}`)
+
       if (quizDetail) {
         currentQuiz.value = quizDetail
         foundUnfinished = true
+
+        // 重置录制相关状态
+        hasRecording.value = false
+        isRecording.value = false
+        countdown.value = 0
+        recordingWarning.value = { type: '', message: '' }
+
+        // 设置对应的状态
+        if (!quiz.audio) {
+          // 没有录音，显示idle状态（可以开始录制）
+          submitStatus.value = 'idle'
+          console.log(`[findNextUnfinishedQuiz] 设置状态为 idle`)
+        } else if (quiz.result) {
+          // 有录音且有result，检查result状态
+          const result = JSON.parse(quiz.result)
+          if (result.code === '0000') {
+            // 评估成功但在这里被找到，说明没有evaluation
+            submitStatus.value = 'processing'
+            console.log(`[findNextUnfinishedQuiz] 设置状态为 processing (result.code=0000)`)
+          } else {
+            // 评估失败，显示错误状态
+            submitStatus.value = 'error'
+            console.log(`[findNextUnfinishedQuiz] 设置状态为 error (result.code=${result.code})`)
+          }
+        } else {
+          // 有录音但没有result，等待处理
+          submitStatus.value = 'processing'
+          console.log(`[findNextUnfinishedQuiz] 设置状态为 processing (无result)`)
+        }
+
         break
+      } else {
+        console.warn(`[findNextUnfinishedQuiz] quizDetail 不存在，跳过 index=${i}, quizId=${quiz.quizId}`)
       }
     }
   }
@@ -662,6 +660,7 @@ const findNextUnfinishedQuiz = () => {
   if (!foundUnfinished) {
     // 所有题目都已完成，等待总体结果
     submitStatus.value = 'processing'
+    console.log(`[findNextUnfinishedQuiz] 所有题目已完成，设置状态为 processing`)
   }
 }
 
@@ -912,10 +911,22 @@ const handleRecordingComplete = () => {
   recordingUrl.value = URL.createObjectURL(audioBlob)
   recordingDuration.value = recordingTime.value
 
-  // 检查录制时长是否足够
-  if (recordingDuration.value < getMinRecordingTime()) {
-    showWarning.value = true
-    return
+  // 重置警告
+  recordingWarning.value = { type: '', message: '' }
+
+  // 仅对 part 2001001 进行时长检查
+  if (currentQuiz.value?.part === '2001001') {
+    if (recordingDuration.value <= 10) {
+      recordingWarning.value = {
+        type: 'short',
+        message: t('ielts.quiz.recordingTooShortWarning')
+      }
+    } else if (recordingDuration.value > 30) {
+      recordingWarning.value = {
+        type: 'long',
+        message: t('ielts.quiz.recordingTooLongWarning')
+      }
+    }
   }
 
   hasRecording.value = true
@@ -923,21 +934,15 @@ const handleRecordingComplete = () => {
 
 // 重录
 const retryRecording = () => {
-  showWarning.value = false
   hasRecording.value = false
   recordingTime.value = 0
   recordingDuration.value = 0
+  recordingWarning.value = { type: '', message: '' }
 
   if (recordingUrl.value) {
     URL.revokeObjectURL(recordingUrl.value)
     recordingUrl.value = ''
   }
-}
-
-// 放弃录制
-const discardRecording = () => {
-  showWarning.value = false
-  retryRecording()
 }
 
 // 提交录制
@@ -980,68 +985,17 @@ const refreshData = async () => {
             evaluationResult.value = JSON.parse(result.evaluation)
             submitStatus.value = 'completed'
 
-            // 如果是最后一题，检查总体评估状态
+            // 如果是最后一题，检查总体评估状态（但不覆盖当前显示的单题评分）
             if (isLastQuiz()) {
-              checkOverallEvaluationStatus()
+              checkOverallEvaluationStatus(false)
             }
           }
         } else {
           // 单题处理失败
           submitStatus.value = 'error'
-          ElMessage.error(t('ielts.quiz.voiceAnalysisError') + ': ' + (resultData.message || t('ielts.quiz.error')))
         }
       } else {
         ElMessage.info(t('ielts.quiz.analysisInProgress'))
-      }
-    }
-  } else if (submitStatus.value === 'reappraising') {
-    // 在重新评估中，刷新对应的结果
-    if (currentTopicPractice.value?.result) {
-      // 刷新总体结果
-      const response = await getTopicPracticeDetailApi({ id: currentTopicPractice.value.id })
-      const result = response.data
-
-      if (result.result) {
-        const resultData = JSON.parse(result.result)
-        if (resultData.code === '0000') {
-          // 总体评估完成
-          submitStatus.value = 'completed'
-          if (result.evaluation) {
-            evaluationResult.value = JSON.parse(result.evaluation)
-          }
-          resultComment.value = result.comment || ''
-          currentTopicPractice.value = result
-        } else {
-          // 总体评估失败
-          submitStatus.value = 'error'
-        }
-      } else {
-        ElMessage.info('重新评估仍在进行中')
-      }
-    } else {
-      // 刷新单题结果
-      const currentQuizPractice = currentTopicPractice.value?.topicPracticeQuizList[currentQuizIndex.value]
-      if (currentQuizPractice) {
-        const response = await getTopicPracticeQuizDetailApi({ id: currentQuizPractice.id })
-        const result = response.data
-
-        if (result.result) {
-          const resultData = JSON.parse(result.result)
-          if (resultData.code === '0000') {
-            // 单题重新评估成功
-            if (result.evaluation) {
-              evaluationResult.value = JSON.parse(result.evaluation)
-              submitStatus.value = 'completed'
-              ElMessage.success(t('ielts.quiz.reevaluationUpdated'))
-            }
-          } else {
-            // 单题重新评估失败
-            submitStatus.value = 'error'
-            ElMessage.error(t('ielts.quiz.reevaluationFailed') + ': ' + (resultData.message || t('ielts.quiz.error')))
-          }
-        } else {
-          ElMessage.info(t('ielts.quiz.reevaluating'))
-        }
       }
     }
   } else {
@@ -1050,7 +1004,7 @@ const refreshData = async () => {
 }
 
 // 检查总体评估状态
-const checkOverallEvaluationStatus = async () => {
+const checkOverallEvaluationStatus = async (shouldUpdateEvaluationResult = true) => {
   if (!currentTopicPractice.value) return
 
   checkingOverall.value = true
@@ -1064,7 +1018,8 @@ const checkOverallEvaluationStatus = async () => {
     if (resultData.code === '0000') {
       // 总体评估完成
       overallEvaluationStatus.value = 'completed'
-      if (result.evaluation) {
+      // 只有在明确需要更新时才覆盖evaluationResult（避免覆盖单题评分）
+      if (shouldUpdateEvaluationResult && result.evaluation) {
         evaluationResult.value = JSON.parse(result.evaluation)
       }
       resultComment.value = result.comment || ''
@@ -1200,7 +1155,8 @@ const reappraiseQuiz = async () => {
   const currentQuizPractice = currentTopicPractice.value.topicPracticeQuizList[currentQuizIndex.value]
 
   await reappraiseTopicPracticeQuizApi({ id: currentQuizPractice.id })
-  submitStatus.value = 'reappraising'
+  // 切换到处理中状态，等待评估结果
+  submitStatus.value = 'processing'
   ElMessage.success(t('ielts.quiz.reevaluationStarted'))
 }
 
@@ -1209,7 +1165,8 @@ const reappraiseTopic = async () => {
   if (!currentTopicPractice.value) return
 
   await reappraiseTopicPracticeApi({ id: currentTopicPractice.value.id })
-  submitStatus.value = 'reappraising'
+  // 切换到处理中状态，等待评估结果
+  submitStatus.value = 'processing'
   ElMessage.success(t('ielts.quiz.reevaluationStarted'))
 }
 
@@ -1274,7 +1231,7 @@ const handleClose = () => {
   isSubmitting.value = false
   recordingTime.value = 0
   recordingDuration.value = 0
-  showWarning.value = false
+  recordingWarning.value = { type: '', message: '' }
   isCollapsed.value = false
   isAudioPlaying.value = false
   shouldAutoPlayAudio.value = true // 重置音频自动播放设置
@@ -1496,9 +1453,9 @@ const handleQuizEvaluationComplete = async (event: unknown) => {
                 recordingUrl.value = ''
               }
 
-              // 如果是最后一题，检查总体评估状态
+              // 如果是最后一题，检查总体评估状态（但不覆盖当前显示的单题评分）
               if (isLastQuiz()) {
-                checkOverallEvaluationStatus()
+                checkOverallEvaluationStatus(false)
               }
             }
           }
@@ -1522,7 +1479,9 @@ const handleOverallEvaluationComplete = async (event: unknown) => {
   const data = event as { topicPracticeId: string };
   if (currentTopicPractice.value && currentTopicPractice.value.id.toString() === data.topicPracticeId) {
     // 当前显示的practice与消息中的topicPracticeId匹配，刷新总体评估状态
-    await checkOverallEvaluationStatus()
+    // 如果当前正在显示单题评分（状态为completed），不要覆盖它
+    const shouldUpdate = submitStatus.value !== 'completed'
+    await checkOverallEvaluationStatus(shouldUpdate)
 
     // checkOverallEvaluationStatus 会更新 currentTopicPractice.value 和 overallEvaluationStatus
     // 如果总体评估完成且当前是错误状态，自动切换到完成状态
@@ -1859,6 +1818,37 @@ defineExpose({
           }
         }
 
+        .recording-duration-warning {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin: 12px 0;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-size: 14px;
+
+          &.warning-short {
+            background: #fef0f0;
+            color: #f56c6c;
+            border: 1px solid #fde2e2;
+
+            .el-icon {
+              color: #f56c6c;
+            }
+          }
+
+          &.warning-long {
+            background: #fdf6ec;
+            color: #e6a23c;
+            border: 1px solid #faecd8;
+
+            .el-icon {
+              color: #e6a23c;
+            }
+          }
+        }
+
         .audio-preview {
           margin: 20px;
 
@@ -1963,6 +1953,52 @@ defineExpose({
   font-size: 14px;
   margin: 12px 0 24px 0;
   line-height: 1.5;
+}
+
+// 错误状态样式
+.error-status {
+  text-align: center;
+  padding: 40px 20px;
+
+  .error-content {
+    margin-bottom: 32px;
+
+    .error-icon-wrapper {
+      margin-bottom: 20px;
+
+      .error-icon {
+        font-size: 64px;
+        color: #f56c6c;
+        animation: shake 0.5s;
+      }
+    }
+
+    .error-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #303133;
+      margin-bottom: 12px;
+    }
+
+    .error-description {
+      font-size: 14px;
+      color: #909399;
+      line-height: 1.6;
+    }
+  }
+
+  .error-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
 }
 
 .warning-content {

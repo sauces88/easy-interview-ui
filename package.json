@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
+    "@elevenlabs/client": "^0.9.1",
+    "@elevenlabs/elevenlabs-js": "^2.21.0",
     "@highlightjs/vue-plugin": "^2.1.0",
     "@iconify/vue": "^4.3.0",
     "@kangc/v-md-editor": "^2.3.18",
