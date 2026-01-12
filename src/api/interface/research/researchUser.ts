@@ -18,6 +18,7 @@ export namespace IResearchUser {
     education?: string
     work?: string
     goal?: string
+    email?: string
  }
 
   // list或detail返回结构
@@ -30,6 +31,7 @@ export namespace IResearchUser {
     education?: string
     work?: string
     goal?: string
+    email?: string
     userName?:string
   }
 

@@ -3,6 +3,22 @@ import pinia from '@/stores';
 
 import '@/styles/index.scss';
 
+// 根据域名获取网站标题
+const getTitleByHostname = () => {
+  const hostname = window.location.hostname;
+  if (hostname === 'easy-interview.gealam.com') {
+    return 'Easy-Interview';
+  } else if (hostname === 'speakx.gealam.com') {
+    return 'Speakx';
+  } else if (hostname === 'jinli.gealam.com') {
+    return 'Jinli';
+  }
+  return import.meta.env.VITE_APP_TITLE;
+};
+
+// 动态设置标题（在应用初始化时立即执行）
+document.title = getTitleByHostname();
+
 // 动态设置favicon
 const setFavicon = () => {
   const hostname = window.location.hostname;
@@ -21,6 +37,9 @@ const setFavicon = () => {
   }
 };
 setFavicon();
+
+// 导出给 router 使用
+export { getTitleByHostname };
 
 // element plus
 import ElementPlus from 'element-plus';

@@ -911,28 +911,35 @@ const endConversation = async () => {
 
   // 第二步：WebSocket结束后，调用关闭会话接口
   if (conversationId.value) {
+    let closeSuccess = false
     try {
       await closeElevenlabsConvApi({ conversationId: conversationId.value })
+      closeSuccess = true
     } catch (error) {
       console.error('❌ Failed to close conversation:', error)
+      // 关闭接口调用失败，设置为关闭异常状态，让用户可以重试
+      evaluationStatus.value = 2
+      ElMessage.error(t('ielts.conversation.statusCloseError'))
     }
 
-    // 无论成功还是失败，都调用详情接口获取服务器真实状态
-    try {
-      const { data } = await getElevenlabsConvDetailApi({ conversationId: conversationId.value })
-      evaluationStatus.value = data.status ?? null
+    // 只有关闭接口调用成功时，才获取详情确认状态
+    if (closeSuccess) {
+      try {
+        const { data } = await getElevenlabsConvDetailApi({ conversationId: conversationId.value })
+        evaluationStatus.value = data.status ?? null
 
-      // 根据状态显示不同的消息
-      if (data.status === 2) {
-        // 关闭异常
-        ElMessage.error(t('ielts.conversation.statusCloseError'))
-      } else {
-        // 关闭成功
-        ElMessage.success(t('ielts.conversation.ended'))
+        // 根据状态显示不同的消息
+        if (data.status === 2) {
+          // 关闭异常
+          ElMessage.error(t('ielts.conversation.statusCloseError'))
+        } else {
+          // 关闭成功
+          ElMessage.success(t('ielts.conversation.ended'))
+        }
+      } catch (detailError) {
+        console.error('❌ Failed to get conversation detail:', detailError)
+        ElMessage.error(t('ielts.conversation.getDetailFailed'))
       }
-    } catch (detailError) {
-      console.error('❌ Failed to get conversation detail:', detailError)
-      ElMessage.error(t('ielts.conversation.getDetailFailed'))
     }
 
     // 更新历史列表
@@ -947,28 +954,35 @@ const retryCloseConversation = async () => {
   isEndingConversation.value = true
 
   if (conversationId.value) {
+    let closeSuccess = false
     try {
       await closeElevenlabsConvApi({ conversationId: conversationId.value })
+      closeSuccess = true
     } catch (error) {
       console.error('❌ Failed to retry close conversation:', error)
+      // 重试关闭失败，保持关闭异常状态
+      evaluationStatus.value = 2
+      ElMessage.error(t('ielts.conversation.retryCloseFailed'))
     }
 
-    // 无论成功还是失败，都调用详情接口获取服务器真实状态
-    try {
-      const { data } = await getElevenlabsConvDetailApi({ conversationId: conversationId.value })
-      evaluationStatus.value = data.status ?? null
+    // 只有关闭接口调用成功时，才获取详情确认状态
+    if (closeSuccess) {
+      try {
+        const { data } = await getElevenlabsConvDetailApi({ conversationId: conversationId.value })
+        evaluationStatus.value = data.status ?? null
 
-      // 根据状态显示不同的消息
-      if (data.status === 2) {
-        // 仍然是关闭异常
-        ElMessage.error(t('ielts.conversation.retryCloseFailed'))
-      } else {
-        // 重试成功
-        ElMessage.success(t('ielts.conversation.retryCloseSuccess'))
+        // 根据状态显示不同的消息
+        if (data.status === 2) {
+          // 仍然是关闭异常
+          ElMessage.error(t('ielts.conversation.retryCloseFailed'))
+        } else {
+          // 重试成功
+          ElMessage.success(t('ielts.conversation.retryCloseSuccess'))
+        }
+      } catch (detailError) {
+        console.error('❌ Failed to get conversation detail:', detailError)
+        ElMessage.error(t('ielts.conversation.getDetailFailed'))
       }
-    } catch (detailError) {
-      console.error('❌ Failed to get conversation detail:', detailError)
-      ElMessage.error(t('ielts.conversation.getDetailFailed'))
     }
 
     // 更新历史列表

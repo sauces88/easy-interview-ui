@@ -127,6 +127,7 @@ const columns: ColumnProps<IResearchProj.Row>[] = [
   { type: 'selection', width: 80 },
   { prop: 'name', label: '项目名称' },
   { prop: 'academy', label: '所属院校' },
+  { prop: 'credit', label: '所需积分', width: 100 },
   { prop: 'configStatus', label: '题目配置状态', width: 150 },
   { prop: 'count', label: '题目数量',  width: 100 },
   { prop: 'operation', label: '操作', width: 300, fixed: 'right' }

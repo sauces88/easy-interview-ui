@@ -6,6 +6,13 @@ import type { UploadRawFile } from "element-plus/es/components/upload/src/upload
 import type { AxiosRequestConfig } from 'axios';
 
 /**
+ * 每日随机练习
+ * */
+export const random = () => {
+  return http.get<Map<string,any>>(ADMIN_MODULE + `/topic-practice/random`)
+}
+
+/**
  * 根据topic获取未完结的练习记录
  * @param params
  * @returns {*}

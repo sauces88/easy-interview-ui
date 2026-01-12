@@ -43,329 +43,350 @@
 
   <el-dialog
     v-model="visible"
-    width="100vw"
+    fullscreen
     :before-close="handleClose"
     class="quiz-detail-dialog"
     destroy-on-close
-    fullscreen
     :show-close="false"
+    :modal="true"
+    append-to-body
   >
-    <template #header>
-      <div class="quiz-header">
-        <span>
-          {{ topic }} - {{ t('ielts.quiz.questionProgress', { current: currentQuizIndex + 1, total: currentTopicPractice?.topicPracticeQuizList?.length || 0 }) }}
-
-        </span>
-        <el-button
-          type="danger"
-          text
-          class="close-btn"
-          @click="handleClose"
-        >
-          {{ practiceMode === 'view' ? t('ielts.quiz.close') : t('ielts.quiz.exitAnswer') }}
-        </el-button>
-      </div>
-    </template>
+    <template #header />
     <div
-      class="quiz-detail"
+      class="practice-container"
       v-if="currentQuiz"
     >
-      <!-- 题目区域 -->
-      <div class="question-section">
-        <div class="question-header">
-          <el-button
-            :icon="isCollapsed ? View: Hide"
-            text
-            class="collapse-btn"
-            @click="toggleCollapse"
-          />
-          <div
-            class="question-text"
-            :class="{ 'blur-content': isCollapsed }"
-          >
-            {{ currentQuiz.text }}
-          </div>
-        </div>
+      <!-- 顶部进度条 -->
+      <div class="progress-bar">
         <div
-          v-if="currentQuiz.tips"
-          class="question-tips"
-          :class="{ 'blur-content': isCollapsed }"
-        >
-          <el-icon class="tips-icon">
-            <InfoFilled />
-          </el-icon>
-          <div class="tips-content">
-            <div
-              class="tips-text"
-              v-html="currentQuiz.tips?.replace(/\n/g, '<br>')"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- 音频播放器 -->
-      <div
-        v-if="currentQuiz.audio"
-        class="audio-section"
-      >
-        <AudioWaveform
-          ref="audioWaveformRef"
-          :audio-url="currentQuiz.audio"
-          :autoplay="shouldAutoPlayAudio"
-          :clickable="true"
-          @ended="handleAudioEnd"
+          class="progress-fill"
+          :style="{ width: progressPercent + '%' }"
         />
       </div>
 
-      <!-- 录制控制区域 -->
-      <div class="recording-section">
-        <div class="recording-controls">
+      <!-- 头部信息栏 -->
+      <header class="header">
+        <div class="topic-info">
+          <span class="topic-badge">{{ topic?.toUpperCase() }}</span>
+          <span class="progress-text">Question {{ currentQuizIndex + 1 }} / {{ currentTopicPractice?.topicPracticeQuizList?.length || 0 }}</span>
+        </div>
+        <button
+          class="btn-exit"
+          @click="handleClose"
+        >
+          <el-icon><SwitchButton /></el-icon>
+          Exit
+        </button>
+      </header>
+
+      <!-- 主内容区域 -->
+      <div class="content-area">
+        <!-- 音频播放器 -->
+        <div
+          v-if="currentQuiz.audio"
+          class="audio-player-wrapper"
+        >
+          <AudioWaveform
+            ref="audioWaveformRef"
+            :audio-url="currentQuiz.audio"
+            :autoplay="shouldAutoPlayAudio"
+            :clickable="true"
+            @ended="handleAudioEnd"
+          />
+        </div>
+
+        <!-- 题目文字区域 -->
+        <div
+          class="question-area"
+          @click="isCollapsed ? null : toggleCollapse()"
+        >
+          <div
+            class="question-text-wrapper"
+            :class="{ 'is-blurred': isCollapsed }"
+          >
+            <p class="question-text">
+              {{ currentQuiz.text }}
+            </p>
+            <div
+              v-if="currentQuiz.tips && !isCollapsed"
+              class="question-tips"
+            >
+              <el-icon class="tips-icon">
+                <InfoFilled />
+              </el-icon>
+              <span v-html="currentQuiz.tips?.replace(/\n/g, '<br>')" />
+            </div>
+          </div>
+          <button
+            v-if="isCollapsed"
+            class="show-text-btn"
+            @click.stop="toggleCollapse"
+          >
+            <el-icon><View /></el-icon>
+            Show Text
+          </button>
+        </div>
+
+        <!-- 录制控制区域 -->
+        <div class="recording-area">
           <!-- 倒计时显示 -->
           <div
             v-if="countdown > 0"
             class="countdown-display"
           >
-            <div class="countdown-number">
-              {{ countdown }}
+            <div class="countdown-circle">
+              <span class="countdown-number">{{ countdown }}</span>
             </div>
-            <div class="countdown-text">
+            <p class="countdown-text">
               {{ t('ielts.quiz.prepareRecording') }}
-            </div>
+            </p>
           </div>
 
-          <!-- 录制按钮 -->
+          <!-- 麦克风按钮（未录制状态） -->
           <div
             v-else-if="!isRecording && !hasRecording && submitStatus !== 'error' && submitStatus !== 'processing'"
+            class="mic-idle"
           >
-            <el-button
-              v-if="practiceMode && hasPreviousQuiz()"
-              :icon="ArrowLeft"
-              text
-              class="collapse-btn previous-btn"
-              @click="goToPreviousQuiz"
-              :disabled="!isPreviousQuizReady()"
-              :loading="isCheckingPreviousQuiz"
+            <!-- 导航按钮 -->
+            <div
+              v-if="practiceMode && (hasPreviousQuiz() || (hasNextQuiz() && (submitStatus === 'completed' || isQuizAnswered())))"
+              class="nav-buttons"
             >
-              {{ isPreviousQuizReady() ? t('ielts.quiz.viewPrevious') : t('ielts.quiz.waitPreviousEval') }}
-            </el-button>
+              <button
+                v-if="hasPreviousQuiz()"
+                class="nav-btn prev"
+                @click="goToPreviousQuiz"
+                :disabled="!isPreviousQuizReady() || isCheckingPreviousQuiz"
+              >
+                <el-icon><ArrowLeft /></el-icon>
+              </button>
+              <button
+                v-if="hasNextQuiz() && (submitStatus === 'completed' || isQuizAnswered())"
+                class="nav-btn next"
+                @click="nextQuiz"
+              >
+                <el-icon><ArrowRight /></el-icon>
+              </button>
+            </div>
 
-            <el-button
+            <button
               v-if="practiceMode !== 'view'"
-              :icon="Microphone"
-              text
-              class="collapse-btn record-btn"
+              class="mic-button"
               @click="startCountdown"
               :disabled="isProcessing || isQuizAnswered()"
+              :class="{ 'is-disabled': isProcessing || isQuizAnswered() }"
             >
-              {{ t('ielts.quiz.startRecording') }}
-            </el-button>
-
-            <el-button
-              v-if="practiceMode && hasNextQuiz() && (submitStatus === 'completed' || isQuizAnswered())"
-              :icon="ArrowRight"
-              class="collapse-btn"
-              @click="nextQuiz"
-              text
-            >
-              {{ t('ielts.quiz.nextQuestion') }}
-            </el-button>
+              <el-icon class="mic-icon">
+                <Microphone />
+              </el-icon>
+            </button>
+            <p class="mic-hint">
+              {{ t('ielts.quiz.tapToAnswer') }}
+            </p>
           </div>
 
           <!-- 录制中状态 -->
           <div
             v-else-if="isRecording"
-            class="recording-status"
+            class="recording-active"
           >
             <div class="recording-indicator">
               <div class="recording-dot" />
-              <span class="recording-text">{{ t('ielts.quiz.recording') }}</span>
+              <span>{{ t('ielts.quiz.recording') }}</span>
             </div>
             <div class="recording-time">
               {{ formatTime(getMaxRecordingTime() - recordingTime) }}
             </div>
-
-            <el-button
-              type="danger"
-              :icon="VideoPause"
-              @click="stopRecording"
+            <button
               class="stop-btn"
+              @click="stopRecording"
             >
+              <el-icon><VideoPause /></el-icon>
               {{ t('ielts.quiz.stopRecording') }}
-            </el-button>
+            </button>
           </div>
 
-          <!-- 录制完成状态（提交前）-->
+          <!-- 录制完成状态 -->
           <div
             v-else-if="hasRecording && submitStatus === 'idle'"
-            class="recording-finished"
+            class="recording-done"
           >
-            <div class="recording-info">
-              <el-icon class="success-icon">
+            <div class="done-info">
+              <el-icon class="done-icon">
                 <SuccessFilled />
               </el-icon>
-              <span class="finished-text">{{ t('ielts.quiz.recordingCompleted') }} ({{ formatTime(recordingDuration) }})</span>
+              <span>{{ t('ielts.quiz.recordingCompleted') }} ({{ formatTime(recordingDuration) }})</span>
             </div>
-
-            <!-- 录制时长提示 -->
             <div
               v-if="recordingWarning.type"
-              :class="['recording-duration-warning', recordingWarning.type === 'short' ? 'warning-short' : 'warning-long']"
+              :class="['warning-msg', recordingWarning.type]"
             >
-              <el-icon>
-                <WarningFilled />
-              </el-icon>
+              <el-icon><WarningFilled /></el-icon>
               <span>{{ recordingWarning.message }}</span>
             </div>
-
             <div class="audio-preview">
               <audio
                 :src="recordingUrl"
                 controls
               />
             </div>
-            <div class="action-buttons">
-              <el-button
+            <div class="done-actions">
+              <button
                 v-if="practiceMode !== 'view'"
-                type="primary"
-                text
-                :icon="Upload"
+                class="action-btn primary"
                 @click="submitRecording"
-                :loading="isSubmitting"
+                :disabled="isSubmitting"
               >
+                <el-icon><Upload /></el-icon>
                 {{ t('ielts.quiz.submitAnswer') }}
-              </el-button>
-              <el-button
+              </button>
+              <button
                 v-if="practiceMode !== 'view'"
-                type="default"
-                text
-                :icon="RefreshRight"
+                class="action-btn secondary"
                 @click="retryRecording"
               >
+                <el-icon><RefreshRight /></el-icon>
                 {{ t('ielts.quiz.reRecord') }}
-              </el-button>
+              </button>
             </div>
           </div>
 
-          <!-- 分析处理中状态 -->
+          <!-- 处理中状态 -->
           <div
             v-else-if="submitStatus === 'processing'"
-            class="processing-status"
+            class="processing-state"
           >
-            <div class="processing-indicator">
-              <span class="processing-text">{{ t('ielts.quiz.voiceAnalyzing') }}</span>
-            </div>
-            <div class="processing-illustration">
-              <img
-                src="@/assets/images/processing.svg"
-                class="processing-image"
-              >
-            </div>
+            <div class="processing-spinner" />
+            <p>{{ t('ielts.quiz.voiceAnalyzing') }}</p>
             <div class="processing-actions">
-              <div class="action-buttons">
-                <el-button
-                  @click="refreshData"
-                  :icon="RefreshRight"
-                  text
-                >
-                  {{ t('ielts.quiz.refreshData') }}
-                </el-button>
-                <el-button
-                  v-if="practiceMode && hasNextQuiz()"
-                  type="primary"
-                  @click="nextQuiz"
-                  :icon="ArrowRight"
-                  text
-                >
-                  {{ t('ielts.quiz.nextQuestion') }}
-                </el-button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 分析出错状态 -->
-          <div
-            v-else-if="submitStatus === 'error'"
-            class="error-status"
-          >
-            <div class="error-content">
-              <div class="error-icon-wrapper">
-                <el-icon class="error-icon">
-                  <CircleClose />
-                </el-icon>
-              </div>
-              <div class="error-title">
-                {{ practiceMode ? t('ielts.quiz.evaluationError') : t('ielts.quiz.voiceAnalysisError') }}
-              </div>
-              <div class="error-description">
-                {{ t('ielts.quiz.errorDescription') }}
-              </div>
-            </div>
-
-            <div class="error-actions">
-              <el-button
-                v-if="practiceMode"
-                type="primary"
-                :icon="RefreshRight"
-                @click="currentTopicPractice?.result ? reappraiseTopic() : reappraiseQuiz()"
-                text
-              >
-                {{ t('ielts.quiz.retryEvaluation') }}
-              </el-button>
-              <el-button
-                v-else
-                type="primary"
-                :icon="RefreshRight"
+              <button
+                class="action-btn secondary"
                 @click="refreshData"
               >
-                {{ t('ielts.quiz.retryAnalysis') }}
-              </el-button>
-              <el-button
-                type="default"
-                :icon="Microphone"
-                @click="tryAgain"
-                text
+                <el-icon><RefreshRight /></el-icon>
+                {{ t('ielts.quiz.refreshData') }}
+              </button>
+              <button
+                v-if="practiceMode && hasNextQuiz()"
+                class="action-btn primary"
+                @click="nextQuiz"
               >
+                <el-icon><ArrowRight /></el-icon>
+                {{ t('ielts.quiz.nextQuestion') }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 错误状态 -->
+          <div
+            v-else-if="submitStatus === 'error'"
+            class="error-state"
+          >
+            <el-icon class="error-icon">
+              <CircleClose />
+            </el-icon>
+            <p class="error-title">
+              {{ practiceMode ? t('ielts.quiz.evaluationError') : t('ielts.quiz.voiceAnalysisError') }}
+            </p>
+            <p class="error-desc">
+              {{ t('ielts.quiz.errorDescription') }}
+            </p>
+            <div class="error-actions">
+              <button
+                class="action-btn primary"
+                @click="currentTopicPractice?.result ? reappraiseTopic() : reappraiseQuiz()"
+              >
+                <el-icon><RefreshRight /></el-icon>
+                {{ t('ielts.quiz.retryEvaluation') }}
+              </button>
+              <button
+                class="action-btn secondary"
+                @click="tryAgain"
+              >
+                <el-icon><Microphone /></el-icon>
                 {{ t('ielts.quiz.retryRecording') }}
-              </el-button>
+              </button>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 评测结果展示 -->
-      <EvaluationResults
-        v-if="submitStatus === 'completed'"
-        :evaluation-result="evaluationResult"
-        :result-comment="resultComment"
-      />
+        <!-- 分隔线 -->
+        <div class="divider" />
 
-      <!-- 最后一题完成后的总体评估按钮 -->
-      <div
-        v-if="submitStatus === 'completed' && isLastQuiz()"
-        class="completion-section"
-      >
-        <div class="completion-header">
-          <el-icon class="success-icon-large">
+        <!-- 示例答案区域 -->
+        <div
+          v-if="hasSampleAnswers"
+          class="sample-answers-section"
+        >
+          <div
+            class="sample-answers-header"
+            @click="toggleSampleAnswers"
+          >
+            <div class="header-left">
+              <span class="lightbulb-icon">💡</span>
+              <span class="header-title">{{ t('ielts.quiz.sampleAnswers.title') }}</span>
+            </div>
+            <el-icon :class="['expand-icon', { expanded: showSampleAnswers }]">
+              <ArrowDown />
+            </el-icon>
+          </div>
+
+          <div
+            v-show="showSampleAnswers"
+            class="sample-answers-content"
+          >
+            <div class="band-tabs">
+              <button
+                v-for="band in availableBands"
+                :key="band.key"
+                :class="['band-tab', { active: activeBand === band.key }]"
+                @click="activeBand = band.key"
+              >
+                {{ band.label }}
+              </button>
+            </div>
+
+            <div class="answer-card">
+              <p class="answer-text">
+                "{{ currentSampleAnswer.answer }}"
+              </p>
+              <div
+                v-if="currentSampleAnswer.explanation"
+                class="answer-explanation"
+              >
+                <span class="why-label">{{ t('ielts.quiz.sampleAnswers.why', { band: activeBandLabel }) }}</span>
+                {{ currentSampleAnswer.explanation }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 评测结果展示 -->
+        <EvaluationResults
+          v-if="submitStatus === 'completed'"
+          :evaluation-result="evaluationResult"
+          :result-comment="resultComment"
+        />
+
+        <!-- 完成区域 -->
+        <div
+          v-if="submitStatus === 'completed' && isLastQuiz()"
+          class="completion-section"
+        >
+          <el-icon class="completion-icon">
             <SuccessFilled />
           </el-icon>
-          <span class="completion-title">
-            {{ practiceMode === 'view' ? t('ielts.quiz.allCompleted') : t('ielts.quiz.congratulations') }}
-          </span>
+          <h3>{{ practiceMode === 'view' ? t('ielts.quiz.allCompleted') : t('ielts.quiz.congratulations') }}</h3>
+          <p>{{ t('ielts.quiz.viewOverallDesc') }}</p>
+          <button
+            class="action-btn primary"
+            @click="openOverallEvaluation"
+            :disabled="checkingOverall"
+          >
+            <el-icon><View /></el-icon>
+            {{ t('ielts.quiz.viewOverallButton') }}
+          </button>
         </div>
-        <p class="completion-description">
-          {{ practiceMode === 'view' ? t('ielts.quiz.viewOverallDesc') : t('ielts.quiz.viewOverallDesc') }}
-        </p>
-        <el-button
-          type="primary"
-          text
-          :loading="checkingOverall"
-          @click="openOverallEvaluation"
-        >
-          <el-icon style="margin-right: 4px;">
-            <View />
-          </el-icon>
-          {{ t('ielts.quiz.viewOverallButton') }}
-        </el-button>
       </div>
     </div>
   </el-dialog>
@@ -382,7 +403,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, onUnmounted, ref, provide, inject} from 'vue'
+import {onMounted, onUnmounted, ref, provide, inject, computed, watch} from 'vue'
 import {ElMessage} from 'element-plus'
 import { useI18n } from 'vue-i18n'
 
@@ -394,9 +415,9 @@ import {reappraiseTopicPracticeQuizApi, getTopicPracticeQuizDetailApi, updateTop
 import {getQuizDetailApi} from '@/api/modules/ielts/quiz'
 import {
   View,
-  Hide,
   ArrowLeft,
   ArrowRight,
+  ArrowDown,
   InfoFilled,
   Microphone,
   RefreshRight,
@@ -404,7 +425,8 @@ import {
   Upload,
   VideoPause,
   WarningFilled,
-  CircleClose
+  CircleClose,
+  SwitchButton
 } from '@element-plus/icons-vue'
 import EvaluationResults from './EvaluationResults.vue'
 import OverallEvaluation from './OverallEvaluation.vue'
@@ -432,7 +454,7 @@ const isQuizAnswered = () => {
 // 对话框状态
 const visible = ref(false)
 const currentQuiz = ref<QuizItem | null>(null)
-const isCollapsed = ref(false)
+const isCollapsed = ref(true) // 一开始文本隐藏
 const topic = ref('')
 
 // Topic练习相关状态
@@ -467,6 +489,85 @@ const audioWaveformRef = ref<InstanceType<typeof AudioWaveform> | null>(null)
 const isAudioPlaying = ref(false)
 const shouldAutoPlayAudio = ref(true) // 控制音频是否自动播放
 
+// 示例答案相关状态
+const showSampleAnswers = ref(false)
+const activeBand = ref<'6' | '7' | '8'>('6')
+
+// 进度条百分比
+const progressPercent = computed(() => {
+  if (!currentTopicPractice.value?.topicPracticeQuizList?.length) return 0
+  return ((currentQuizIndex.value + 1) / currentTopicPractice.value.topicPracticeQuizList.length) * 100
+})
+
+// 检查是否有示例答案
+const hasSampleAnswers = computed(() => {
+  if (!currentQuiz.value) return false
+  return !!(currentQuiz.value.answer6 || currentQuiz.value.answer7 || currentQuiz.value.answer8)
+})
+
+// 获取可用的 Band 选项
+const availableBands = computed(() => {
+  const bands: { key: '6' | '7' | '8'; label: string }[] = []
+  if (currentQuiz.value?.answer6) {
+    bands.push({ key: '6', label: 'Band 6.0' })
+  }
+  if (currentQuiz.value?.answer7) {
+    bands.push({ key: '7', label: 'Band 7.0' })
+  }
+  if (currentQuiz.value?.answer8) {
+    bands.push({ key: '8', label: 'Band 8.0+' })
+  }
+  return bands
+})
+
+// 获取当前选中的 Band 标签
+const activeBandLabel = computed(() => {
+  const labels: Record<string, string> = {
+    '6': '6.0',
+    '7': '7.0',
+    '8': '8.0+'
+  }
+  return labels[activeBand.value] || '6.0'
+})
+
+// 解析示例答案（以 | 分割为答案和解释）
+const parseSampleAnswer = (content: string | undefined) => {
+  if (!content) return { answer: '', explanation: '' }
+  const parts = content.split('|')
+  return {
+    answer: parts[0]?.trim() || '',
+    explanation: parts[1]?.trim() || ''
+  }
+}
+
+// 获取当前选中的示例答案
+const currentSampleAnswer = computed(() => {
+  if (!currentQuiz.value) return { answer: '', explanation: '' }
+
+  const answerMap: Record<string, string | undefined> = {
+    '6': currentQuiz.value.answer6,
+    '7': currentQuiz.value.answer7,
+    '8': currentQuiz.value.answer8
+  }
+
+  return parseSampleAnswer(answerMap[activeBand.value])
+})
+
+// 切换示例答案显示
+const toggleSampleAnswers = () => {
+  showSampleAnswers.value = !showSampleAnswers.value
+  // 默认选中第一个可用的 Band
+  if (showSampleAnswers.value && availableBands.value.length > 0) {
+    activeBand.value = availableBands.value[0].key
+  }
+}
+
+// 切换题目时重置示例答案状态
+watch(currentQuiz, () => {
+  showSampleAnswers.value = false
+  activeBand.value = '6'
+})
+
 // 提交后状态管理
 const practiceId = ref<number | null>(null)
 const submitStatus = ref<'idle' | 'processing' | 'completed' | 'error'>('idle')
@@ -485,11 +586,7 @@ const isPreviousQuizReady = () => {
   if (!previousQuizPractice) return false
 
   // 有录音文件才能查看（无论评估成功还是失败）
-  if (previousQuizPractice.audio) {
-    return true
-  }
-
-  return false
+  return !!previousQuizPractice.audio;
 }
 
 // 总体评估组件引用
@@ -1170,13 +1267,6 @@ const reappraiseTopic = async () => {
   ElMessage.success(t('ielts.quiz.reevaluationStarted'))
 }
 
-// 播放音频
-const playAudio = () => {
-  if (audioWaveformRef.value) {
-    audioWaveformRef.value.play()
-  }
-}
-
 // 音频播放结束
 const handleAudioEnd = async () => {
   isAudioPlaying.value = false
@@ -1232,7 +1322,7 @@ const handleClose = () => {
   recordingTime.value = 0
   recordingDuration.value = 0
   recordingWarning.value = { type: '', message: '' }
-  isCollapsed.value = false
+  isCollapsed.value = true // 重置为隐藏状态
   isAudioPlaying.value = false
   shouldAutoPlayAudio.value = true // 重置音频自动播放设置
 
@@ -1486,7 +1576,6 @@ const handleOverallEvaluationComplete = async (event: unknown) => {
     // checkOverallEvaluationStatus 会更新 currentTopicPractice.value 和 overallEvaluationStatus
     // 如果总体评估完成且当前是错误状态，自动切换到完成状态
     if (overallEvaluationStatus.value === 'completed' && submitStatus.value === 'error') {
-      const practice = currentTopicPractice.value
       // 总体评估成功，显示结果
       submitStatus.value = 'completed'
 
@@ -1650,383 +1739,721 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+// CSS 变量
+:root {
+  --primary: #00C4CC;
+  --primary-hover: #009aa0;
+  --text-dark: #2D3E50;
+  --text-light: #64748B;
+  --bg-color: #F5F7FA;
+  --white: #FFFFFF;
+  --danger: #FF5252;
+  --gold: #F1C40F;
+}
+
+// 主对话框样式
 .quiz-detail-dialog {
-  :deep(.el-dialog) {
-    border-radius: 12px;
+  :deep(.el-overlay) {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 2000 !important;
+    background-color: rgba(0, 0, 0, 0.3);
   }
-  .quiz-header{
+
+  :deep(.el-overlay-dialog) {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    overflow: hidden;
+  }
+
+  :deep(.el-dialog) {
+    background: #F5F7FA;
+    margin: 0 !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  :deep(.el-dialog__header) {
+    display: none !important;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
+    box-sizing: border-box;
   }
 }
 
-.quiz-detail {
-  padding: 8px;
+// 练习卡片容器
+.practice-container {
+  width: 100%;
+  max-width: 800px;
   margin: 0 auto;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: none;
 
-  .question-section {
-    margin-bottom: 24px;
-    padding: 24px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    border: 1px solid #e6e8eb;
+  // 顶部进度条
+  .progress-bar {
+    height: 4px;
+    background: #EEF2F6;
+    width: 100%;
+    border: none;
 
-    .question-header {
+    .progress-fill {
+      height: 100%;
+      background: #00C4CC;
+      border-radius: 0 4px 4px 0;
+      transition: width 0.3s ease;
+    }
+  }
+
+  // 头部信息栏
+  .header {
+    padding: 20px 30px;
+    border-bottom: 1px solid #EEF2F6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .topic-info {
       display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 20px;
+      align-items: center;
+      gap: 15px;
+
+      .topic-badge {
+        background: #E0F7FA;
+        color: #009aa0;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .progress-text {
+        color: #64748B;
+        font-size: 14px;
+      }
     }
 
-    .question-text {
-      font-size: 16px;
-      line-height: 1.6;
-      color: #333;
-      flex: 1;
-      padding: 0;
-    }
-
-    .question-tips {
+    .btn-exit {
+      color: #FF5252;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
       display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 16px;
+      align-items: center;
+      gap: 5px;
+      background: none;
       border: none;
-      border-radius: 8px;
-      border-left: 1px solid #409eff;
-      margin-top: 16px;
+      transition: opacity 0.2s;
 
-      .tips-icon {
-        color: #409eff;
-        margin-top: 2px;
-      }
-
-      .tips-content {
-        flex: 1;
-
-        .tips-title {
-          font-size: 13px;
-          font-weight: 500;
-          color: #409eff;
-          margin-bottom: 4px;
-        }
-
-        .tips-text {
-          font-size: 14px;
-          color: #666;
-          line-height: 1.5;
-        }
+      &:hover {
+        opacity: 0.7;
       }
     }
   }
 
-  .audio-section {
-    margin-bottom: 24px;
-  }
+  // 主内容区域
+  .content-area {
+    padding: 40px 40px 50px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 
-  .recording-section {
-    background: #fff;
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
+    // 音频播放器
+    .audio-player-wrapper {
+      width: 100%;
+      max-width: 550px;
+      margin-bottom: 30px;
 
-    .recording-controls {
+      :deep(.audio-section) {
+        .audio-waveform {
+          padding: 12px 16px;
+          border-radius: 50px;
+          background: #F1F5F9;
+          border: none;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
+
+          .waveform-container {
+            .waveform-canvas {
+              height: 32px;
+            }
+          }
+        }
+      }
+    }
+
+    // 题目区域
+    .question-area {
+      position: relative;
+      margin-bottom: 50px;
+      width: 100%;
       text-align: center;
-      padding: 20px 0;
+      cursor: pointer;
 
+      .question-text-wrapper {
+        transition: all 0.4s ease;
+
+        &.is-blurred {
+          filter: blur(12px);
+          opacity: 0.3;
+          user-select: none;
+        }
+
+        .question-text {
+          font-size: 28px;
+          color: #2D3E50;
+          font-weight: 700;
+          line-height: 1.4;
+          margin: 0;
+        }
+
+        .question-tips {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          margin-top: 20px;
+          padding: 12px 16px;
+          background: #f0f7ff;
+          border-radius: 8px;
+          text-align: left;
+          font-size: 14px;
+          color: #64748B;
+
+          .tips-icon {
+            color: #409eff;
+            margin-top: 2px;
+          }
+        }
+      }
+
+      .show-text-btn {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        z-index: 5;
+        backdrop-filter: blur(4px);
+        background: rgba(45, 62, 80, 0.8);
+        color: #fff;
+        border: none;
+
+        &:hover {
+          background: rgba(45, 62, 80, 0.9);
+        }
+      }
+    }
+
+    // 录制区域
+    .recording-area {
+      text-align: center;
+      width: 100%;
+
+      // 倒计时
       .countdown-display {
-        .countdown-number {
-          font-size: 48px;
-          font-weight: bold;
-          color: #409eff;
-          margin-bottom: 10px;
+        .countdown-circle {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #00C4CC, #009aa0);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 16px;
+          box-shadow: 0 10px 20px rgba(0, 196, 204, 0.3);
           animation: pulse 1s infinite;
+
+          .countdown-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #fff;
+          }
         }
 
         .countdown-text {
-          font-size: 18px;
-          color: #666;
-        }
-
-        @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-          100% { transform: scale(1); }
+          color: #64748B;
+          font-size: 14px;
         }
       }
 
-      .recording-status {
+      // 麦克风空闲状态
+      .mic-idle {
+        .nav-buttons {
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          margin-bottom: 20px;
+
+          .nav-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 1px solid #EEF2F6;
+            background: #fff;
+            color: #64748B;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+
+            &:hover:not(:disabled) {
+              border-color: #00C4CC;
+              color: #00C4CC;
+            }
+
+            &:disabled {
+              opacity: 0.5;
+              cursor: not-allowed;
+            }
+          }
+        }
+
+        .mic-button {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #00C4CC, #009aa0);
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 20px;
+          box-shadow: 0 10px 20px rgba(0, 196, 204, 0.3);
+          transition: transform 0.2s, box-shadow 0.2s;
+
+          &:hover:not(.is-disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 15px 30px rgba(0, 196, 204, 0.4);
+          }
+
+          &.is-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+
+          .mic-icon {
+            font-size: 28px;
+            color: #fff;
+          }
+        }
+
+        .mic-hint {
+          color: #64748B;
+          font-size: 14px;
+          margin: 0;
+        }
+      }
+
+      // 录制中
+      .recording-active {
         .recording-indicator {
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
 
           .recording-dot {
             width: 12px;
             height: 12px;
-            background: #f56c6c;
+            background: #FF5252;
             border-radius: 50%;
             animation: blink 1s infinite;
           }
 
-          .recording-text {
-            font-size: 16px;
-            color: #f56c6c;
+          span {
+            color: #FF5252;
             font-weight: 500;
-          }
-
-          @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0.3; }
           }
         }
 
         .recording-time {
-          font-size: 36px;
+          font-size: 48px;
           font-weight: bold;
-          color: #f56c6c;
-          margin-bottom: 20px;
-          text-shadow: 0 0 10px rgba(245, 108, 108, 0.3);
+          color: #FF5252;
+          margin-bottom: 24px;
         }
 
         .stop-btn {
-          padding: 10px 25px;
-          border-radius: 20px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 24px;
+          border-radius: 24px;
+          background: #FF5252;
+          color: #fff;
+          border: none;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.2s;
+
+          &:hover {
+            background: #e74c3c;
+          }
         }
       }
 
-      .recording-finished {
-        .recording-info {
+      // 录制完成
+      .recording-done {
+        .done-info {
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
 
-          .success-icon {
-            color: #67c23a;
-            font-size: 18px;
+          .done-icon {
+            color: #52c41a;
+            font-size: 20px;
           }
 
-          .finished-text {
-            font-size: 16px;
-            color: #67c23a;
+          span {
+            color: #52c41a;
             font-weight: 500;
           }
         }
 
-        .recording-duration-warning {
-          display: flex;
+        .warning-msg {
+          display: inline-flex;
           align-items: center;
-          justify-content: center;
-          gap: 8px;
-          margin: 12px 0;
+          gap: 6px;
           padding: 8px 16px;
           border-radius: 6px;
-          font-size: 14px;
+          font-size: 13px;
+          margin-bottom: 16px;
 
-          &.warning-short {
+          &.short {
             background: #fef0f0;
-            color: #f56c6c;
-            border: 1px solid #fde2e2;
-
-            .el-icon {
-              color: #f56c6c;
-            }
+            color: #FF5252;
           }
 
-          &.warning-long {
+          &.long {
             background: #fdf6ec;
             color: #e6a23c;
-            border: 1px solid #faecd8;
-
-            .el-icon {
-              color: #e6a23c;
-            }
           }
         }
 
         .audio-preview {
-          margin: 20px;
+          margin: 20px 0;
 
           audio {
-            margin: 20px;
             width: 100%;
-            max-width: 500px;
+            max-width: 400px;
           }
         }
 
-        .action-buttons {
+        .done-actions {
           display: flex;
-          gap: 12px;
           justify-content: center;
+          gap: 12px;
+        }
+      }
+
+      // 处理中
+      .processing-state {
+        .processing-spinner {
+          width: 48px;
+          height: 48px;
+          border: 3px solid #EEF2F6;
+          border-top-color: #00C4CC;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 16px;
+        }
+
+        p {
+          color: #64748B;
+          margin-bottom: 24px;
+        }
+
+        .processing-actions {
+          display: flex;
+          justify-content: center;
+          gap: 12px;
+        }
+      }
+
+      // 错误状态
+      .error-state {
+        .error-icon {
+          font-size: 48px;
+          color: #FF5252;
+          margin-bottom: 16px;
+        }
+
+        .error-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #2D3E50;
+          margin-bottom: 8px;
+        }
+
+        .error-desc {
+          color: #64748B;
+          font-size: 14px;
+          margin-bottom: 24px;
+        }
+
+        .error-actions {
+          display: flex;
+          justify-content: center;
+          gap: 12px;
         }
       }
     }
-  }
 
-  .collapse-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 20px;
-    border-top: 1px solid #ebeef5;
-
-    .left-actions {
-      display: flex;
+    // 通用按钮样式
+    .action-btn {
+      display: inline-flex;
       align-items: center;
-      gap: 16px;
-    }
-
-    .collapse-btn {
-      color: #666;
-    }
-
-    .previous-btn {
-      color: #409eff;
-      font-size: 13px;
-
-      &:hover {
-        color: #337ecc;
-      }
-    }
-
-    .close-btn {
-      color: #f56c6c;
-    }
-  }
-
-  // 高斯模糊效果
-  .blur-content {
-    filter: blur(8px);
-    transition: filter 0.3s ease;
-    user-select: none;
-    pointer-events: none;
-  }
-
-  // 练习选择对话框样式
-  .practice-options {
-    padding: 20px 24px;
-  }
-
-  .dialog-footer {
-    text-align: right;
-
-    .footer-button {
-      margin-left: 12px;
-
-      &:first-child {
-        margin-left: 0;
-      }
-    }
-  }
-
-}
-
-.completion-section {
-  text-align: center;
-}
-
-.completion-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.success-icon-large {
-  font-size: 22px;
-  color: #52c41a;
-}
-
-.completion-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
-}
-
-.completion-description {
-  color: #666;
-  font-size: 14px;
-  margin: 12px 0 24px 0;
-  line-height: 1.5;
-}
-
-// 错误状态样式
-.error-status {
-  text-align: center;
-  padding: 40px 20px;
-
-  .error-content {
-    margin-bottom: 32px;
-
-    .error-icon-wrapper {
-      margin-bottom: 20px;
-
-      .error-icon {
-        font-size: 64px;
-        color: #f56c6c;
-        animation: shake 0.5s;
-      }
-    }
-
-    .error-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #303133;
-      margin-bottom: 12px;
-    }
-
-    .error-description {
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 8px;
       font-size: 14px;
-      color: #909399;
-      line-height: 1.6;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+
+      &.primary {
+        background: #00C4CC;
+        color: #fff;
+
+        &:hover:not(:disabled) {
+          background: #009aa0;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+
+      &.secondary {
+        background: #F8FAFC;
+        color: #64748B;
+        border: 1px solid #EEF2F6;
+
+        &:hover {
+          background: #EEF2F6;
+        }
+      }
     }
-  }
 
-  .error-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
+    // 分隔线
+    .divider {
+      height: 1px;
+      background: #EEF2F6;
+      margin: 20px 0;
+      width: 100%;
+    }
 
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-10px); }
-    75% { transform: translateX(10px); }
+    // 示例答案区域
+    .sample-answers-section {
+      background: #F8FAFC;
+      border-radius: 16px;
+      overflow: hidden;
+      width: 100%;
+      border: 1px solid #EEF2F6;
+
+      .sample-answers-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        cursor: pointer;
+        transition: background 0.2s;
+
+        &:hover {
+          background: #f0f4f8;
+        }
+
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+
+          .lightbulb-icon {
+            font-size: 18px;
+          }
+
+          .header-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2D3E50;
+          }
+        }
+
+        .expand-icon {
+          color: #cbd5e1;
+          transition: transform 0.3s;
+
+          &.expanded {
+            transform: rotate(180deg);
+          }
+        }
+      }
+
+      .sample-answers-content {
+        padding: 0 20px 20px;
+
+        .band-tabs {
+          display: flex;
+          gap: 10px;
+          padding: 16px 0 20px;
+          justify-content: center;
+
+          .band-tab {
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 1px solid #EEF2F6;
+            background: white;
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748B;
+            cursor: pointer;
+            transition: all 0.2s;
+
+            &:hover {
+              border-color: #00C4CC;
+              color: #00C4CC;
+            }
+
+            &.active {
+              background: #00C4CC;
+              color: white;
+              border-color: #00C4CC;
+              box-shadow: 0 4px 10px rgba(0, 196, 204, 0.2);
+            }
+          }
+        }
+
+        .answer-card {
+          background: white;
+          padding: 25px;
+          border-radius: 16px;
+          border: 1px solid #EEF2F6;
+          animation: fadeIn 0.3s ease;
+
+          .answer-text {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #2D3E50;
+            margin: 0 0 16px 0;
+          }
+
+          .answer-explanation {
+            font-size: 13px;
+            color: #64748B;
+            background: #F0F4F8;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border-left: 3px solid #00C4CC;
+
+            .why-label {
+              font-weight: 600;
+              color: #00C4CC;
+              margin-right: 4px;
+            }
+          }
+        }
+      }
+    }
+
+    // 完成区域
+    .completion-section {
+      text-align: center;
+      padding: 40px 20px;
+      background: #F8FAFC;
+      border-radius: 16px;
+      margin-top: 24px;
+      width: 100%;
+      border: 1px solid #EEF2F6;
+
+      .completion-icon {
+        font-size: 48px;
+        color: #52c41a;
+        margin-bottom: 16px;
+      }
+
+      h3 {
+        font-size: 20px;
+        color: #2D3E50;
+        margin: 0 0 8px 0;
+      }
+
+      p {
+        color: #64748B;
+        margin: 0 0 24px 0;
+      }
+    }
   }
 }
 
-.warning-content {
-  text-align: center;
-  padding: 20px 0;
+// 动画
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
 
-  .warning-icon {
-    font-size: 48px;
-    color: #e6a23c;
-    margin-bottom: 16px;
-  }
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
 
-  p {
-    margin: 8px 0;
-    font-size: 16px;
-    color: #333;
-  }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
-  .min-time-text {
-    font-size: 14px;
-    color: #666;
-  }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 // 练习选择对话框样式
 .practice-options-dialog {
   :deep(.el-dialog) {
-    border-radius: 8px;
+    border-radius: 12px;
 
     .el-dialog__header {
       padding: 20px 24px 0;
@@ -2034,11 +2461,11 @@ defineExpose({
     }
 
     .el-dialog__body {
-      padding: 10px 0 0;
+      padding: 16px 24px;
     }
 
     .el-dialog__footer {
-      padding: 20px 24px;
+      padding: 16px 24px;
     }
   }
 
@@ -2057,6 +2484,54 @@ defineExpose({
       font-weight: 600;
       color: #303133;
     }
+  }
+}
+</style>
+
+<style lang="scss">
+// 全局样式 - 用于 append-to-body 的对话框
+.quiz-detail-dialog {
+  .el-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 2000 !important;
+  }
+
+  .el-dialog {
+    background: #F5F7FA !important;
+    margin: 0 !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .el-dialog__header {
+    display: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 0 !important;
+  }
+
+  .el-dialog__body {
+    padding: 15vh 20px !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow-y: auto;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    box-sizing: border-box;
   }
 }
 </style>

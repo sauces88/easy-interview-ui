@@ -16,40 +16,86 @@
         </el-tabs>
       </div>
 
-      <!-- 分类选择标签和搜索框 -->
-      <div class="tab-section-with-search">
-        <div class="category-tabs">
-          <el-tabs
-            v-model="activeCategoryId"
-            @tab-change="handleCategoryChange"
-            class="custom-tabs"
-          >
-            <el-tab-pane
-              name=""
-              label="ALL"
-            />
-            <el-tab-pane
-              v-for="category in categoryOptions"
-              :key="category.id"
-              :name="category.id"
-              :label="category.codeName"
-            />
-          </el-tabs>
+      <!-- 分类选择标签和筛选 -->
+      <div class="filter-row">
+        <div class="filter-left">
+          <div class="category-tabs">
+            <el-tabs
+              v-model="activeCategoryId"
+              @tab-change="handleCategoryChange"
+              class="custom-tabs"
+            >
+              <el-tab-pane
+                name=""
+                label="ALL"
+              />
+              <el-tab-pane
+                v-for="category in categoryOptions"
+                :key="category.id"
+                :name="category.id"
+                :label="category.codeName"
+              />
+            </el-tabs>
+          </div>
+          <div class="filter-divider" />
+          <div class="filter-group">
+            <div
+              class="filter-item"
+              :class="{ 'is-active': searchForm.practiceFlag === true }"
+              @click="togglePracticeFilter(true)"
+            >
+              {{ t('ielts.quiz.practiced') }}
+            </div>
+            <div
+              class="filter-item"
+              :class="{ 'is-active': searchForm.practiceFlag === false }"
+              @click="togglePracticeFilter(false)"
+            >
+              {{ t('ielts.quiz.notPracticedTag') }}
+            </div>
+          </div>
         </div>
-
-        <!-- 搜索输入框 -->
-        <div class="search-input-wrapper">
+        <div class="search-input">
           <el-input
-            v-model="searchForm.text"
+            v-model="searchForm.topic"
             :placeholder="t('ielts.quiz.searchPlaceholder')"
-            class="content-search"
+            :prefix-icon="Search"
             @keyup="handleKeywordSearch"
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
+          />
         </div>
+      </div>
+    </div>
+
+    <!-- 操作工具栏 -->
+    <div class="action-bar">
+      <div class="selected-info">
+        <template v-if="selectedTopic">
+          <span class="selected-label">{{ t('ielts.quiz.selected') }}:</span>
+          <span class="selected-topic">{{ selectedTopic.topic }}</span>
+        </template>
+        <template v-else>
+          <span class="no-selected">{{ t('ielts.quiz.selectTopic') }}</span>
+        </template>
+      </div>
+      <div class="action-buttons">
+        <el-button
+          :disabled="!selectedTopic"
+          :icon="Microphone"
+          @click="handleStartTopic(selectedTopic!)"
+          v-auth="'topic.practice.create'"
+          class="action-btn primary"
+        >
+          {{ t('ielts.quiz.startPractice') }}
+        </el-button>
+        <el-button
+          :disabled="!selectedTopic"
+          :icon="View"
+          @click="handleViewTopicHistory(selectedTopic!)"
+          v-auth="'topic.practice.query_table'"
+          class="action-btn"
+        >
+          {{ t('ielts.quiz.viewHistory') }}
+        </el-button>
       </div>
     </div>
 
@@ -67,105 +113,79 @@
           v-for="topicItem in topicList"
           :key="topicItem.topic"
           class="topic-card"
+          :class="{ 'is-selected': selectedTopic?.topic === topicItem.topic }"
+          @click="handleSelectTopic(topicItem)"
         >
-          <div class="topic-content">
-            <div class="topic-left">
-              <div class="topic-title">
-                {{ topicItem.topic }}
-              </div>
-              <div
-                class="topic-question"
-                v-if="topicItem.questions[0]?.text"
+          <div class="card-header">
+            <div class="topic-tags">
+              <el-tag
+                v-if="topicItem.questions[0]?.part"
+                size="small"
+                type="info"
               >
-                {{ topicItem.questions[0].text }}
-              </div>
-              <div class="topic-tags">
-                <el-tag
-                  v-if="topicItem.questions[0]?.part"
-                  size="small"
-                  type="primary"
-                >
-                  {{ getPartName(topicItem.questions[0].part) }}
-                </el-tag>
-                <el-tag
-                  v-if="topicItem.questions[0]?.category"
-                  size="small"
-                  type="success"
-                >
-                  {{ getCategoryName(topicItem.questions[0].category) }}
-                </el-tag>
-                <el-tag
-                  v-if="topicItem.questions[0]?.type"
-                  size="small"
-                  type="warning"
-                >
-                  {{ getTypeName(topicItem.questions[0].type) }}
-                </el-tag>
-                <el-tag
-                  v-for="(tag, idx) in getTagList(topicItem.questions[0]?.tags)"
-                  :key="idx"
-                  size="small"
-                  type="danger"
-                >
-                  {{ tag }}
-                </el-tag>
-              </div>
-            </div>
-
-            <div class="topic-right">
-              <div class="topic-actions">
-                <el-button
-                  type="success"
-                  size="small"
-                  text
-                  :icon="Microphone"
-                  @click="handleStartTopic(topicItem)"
-                  v-auth="'topic.practice.create'"
-                  class="practice-btn"
-                >
-                  {{ t('ielts.quiz.startPractice') }}
-                </el-button>
-                <el-button
-                  type="info"
-                  size="small"
-                  text
-                  :icon="View"
-                  @click="handleViewTopicHistory(topicItem)"
-                  v-auth="'topic.practice.query_table'"
-                  class="history-btn"
-                >
-                  {{ t('ielts.quiz.viewHistory') }}
-                </el-button>
-              </div>
-              <div
-                v-if="topicItem.questions[0]?.source"
-                class="source-info"
+                {{ getPartName(topicItem.questions[0].part) }}
+              </el-tag>
+              <el-tag
+                v-if="topicItem.questions[0]?.category"
+                size="small"
+                type="info"
               >
-                {{ t('ielts.quiz.source') }}：{{ topicItem.questions[0].source }}
-              </div>
+                {{ getCategoryName(topicItem.questions[0].category) }}
+              </el-tag>
+              <el-tag
+                v-if="topicItem.questions[0]?.type"
+                size="small"
+                type="info"
+              >
+                {{ getTypeName(topicItem.questions[0].type) }}
+              </el-tag>
             </div>
+            <span
+              class="practice-badge"
+              :class="topicItem.practiceCount > 0 ? 'practiced' : 'not-practiced'"
+            >
+              {{ topicItem.practiceCount > 0 ? t('ielts.quiz.practicedTimes', { count: topicItem.practiceCount }) : t('ielts.quiz.notPracticed') }}
+            </span>
+          </div>
+          <div class="topic-title">
+            {{ topicItem.topic }}
+          </div>
+          <div
+            class="topic-question"
+            v-if="topicItem.questions[0]?.text"
+          >
+            {{ topicItem.questions[0].text }}
+          </div>
+          <div class="card-footer">
+            <el-tag
+              v-if="topicItem.questions[0]?.source"
+              size="small"
+              class="source-tag"
+            >
+              {{ topicItem.questions[0].source }}
+            </el-tag>
           </div>
         </div>
+      </div>
 
-        <!-- Loading & No More -->
-        <div
-          style="text-align: center; padding: 20px; color: #999; font-size: 14px;"
-          v-if="loading"
-        >
-          {{ t('ielts.quiz.loading') }}
-        </div>
-        <div
-          style="text-align: center; padding: 20px; color: #999; font-size: 14px;"
-          v-if="noMore && topicList.length > 0"
-        >
-          {{ t('ielts.quiz.noMoreData') }}
-        </div>
-        <div
-          style="text-align: center; padding: 20px; color: #999; font-size: 14px;"
-          v-if="!loading && topicList.length === 0"
-        >
-          {{ t('ielts.quiz.noMoreData') }}
-        </div>
+      <!-- Loading & No More -->
+      <div
+        class="loading-text"
+        v-if="loading"
+      >
+        {{ t('ielts.quiz.loading') }}
+      </div>
+      <div
+        class="loading-text"
+        v-if="noMore && topicList.length > 0"
+      >
+        {{ t('ielts.quiz.noMoreData') }}
+      </div>
+      <div
+        class="loading-text"
+        v-if="!loading && topicList.length === 0"
+      >
+        {{ t('ielts.quiz.noMoreData') }}
       </div>
     </div>
 
@@ -173,83 +193,79 @@
 
     <el-dialog
       v-model="historyDialogVisible"
-      width="500px"
+      width="480px"
       destroy-on-close
+      class="history-dialog"
+      :show-close="true"
     >
-      <!-- 表格区域 -->
-      <div style="margin-bottom: 16px;">
-        <el-table
-          :data="practiceHistoryList"
-          style="width: 100%"
-          v-loading="historyLoading"
+      <template #header>
+        <div class="history-dialog-header">
+          <span class="header-title">{{ t('ielts.quiz.viewHistory') }}</span>
+          <span class="header-topic">{{ currentHistoryTopic }}</span>
+        </div>
+      </template>
+
+      <div
+        class="history-list"
+        v-loading="historyLoading"
+      >
+        <div
+          v-for="item in practiceHistoryList"
+          :key="item.id"
+          class="history-item"
         >
-          <el-table-column
-            prop="id"
-            :label="t('ielts.quiz.id')"
-            align="center"
-          />
-          <el-table-column
-            :label="t('ielts.quiz.status')"
-            align="center"
-          >
-            <template #default="scope">
-              <el-tag
-                :type="(getTopicPracticeStatus(scope.row).type as any)"
-                size="small"
-              >
-                {{ getTopicPracticeStatus(scope.row).text }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column
-            :label="t('ielts.quiz.operation')"
-            width="150"
-            align="center"
-            fixed="right"
-          >
-            <template #default="scope">
-              <el-button
-                v-if="getTopicPracticeStatus(scope.row).type === 'success'"
-                type="primary"
-                size="small"
-                text
-                @click="handleViewTopicDetail(scope.row)"
-              >
-                {{ t('ielts.quiz.viewDetails') }}
-              </el-button>
-              <el-button
-                v-else-if="getTopicPracticeStatus(scope.row).type === 'info'"
-                type="primary"
-                size="small"
-                text
-                @click="handleContinueTopicPractice(scope.row)"
-              >
-                {{ t('ielts.quiz.continuePractice') }}
-              </el-button>
-              <el-button
-                v-else
-                type="warning"
-                size="small"
-                text
-                @click="handleRetryTopicPractice(scope.row)"
-              >
-                {{ t('ielts.quiz.retryPractice') }}
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+          <div class="item-left">
+            <span class="item-id">#{{ item.id }}</span>
+            <span
+              class="item-status"
+              :class="getTopicPracticeStatus(item).type"
+            >
+              {{ getTopicPracticeStatus(item).text }}
+            </span>
+          </div>
+          <div class="item-right">
+            <button
+              v-if="getTopicPracticeStatus(item).type === 'success'"
+              class="item-btn"
+              @click="handleViewTopicDetail(item)"
+            >
+              {{ t('ielts.quiz.viewDetails') }}
+            </button>
+            <button
+              v-else-if="getTopicPracticeStatus(item).type === 'info'"
+              class="item-btn primary"
+              @click="handleContinueTopicPractice(item)"
+            >
+              {{ t('ielts.quiz.continuePractice') }}
+            </button>
+            <button
+              v-else
+              class="item-btn warning"
+              @click="handleRetryTopicPractice(item)"
+            >
+              {{ t('ielts.quiz.retryPractice') }}
+            </button>
+          </div>
+        </div>
+
+        <div
+          v-if="!historyLoading && practiceHistoryList.length === 0"
+          class="empty-state"
+        >
+          {{ t('ielts.quiz.noMoreData') }}
+        </div>
       </div>
 
-      <!-- 分页区域 -->
       <div
-        style="display: flex; justify-content: right; margin-top: 16px; padding-right: 30px;"
-        v-if="historyTotal > 0"
+        class="history-pagination"
+        v-if="historyTotal > historyPageSize"
       >
         <el-pagination
           v-model:current-page="historyPageNum"
           v-model:page-size="historyPageSize"
           :total="historyTotal"
           layout="prev, pager, next"
+          small
           @current-change="handleHistoryPageChange"
         />
       </div>
@@ -278,6 +294,7 @@ interface QuestionItem extends IQuiz.Row {}
 interface TopicItem {
   topic: string
   questions: QuestionItem[]
+  practiceCount: number
 }
 
 defineOptions({
@@ -316,16 +333,37 @@ const topicList = ref<TopicItem[]>([])
 const activePartId = ref<string>('')
 const activeCategoryId = ref<string>('')
 const pageNum = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(12)
 const total = ref(0)
 const loading = ref(false)
 const noMore = ref(false)
+const selectedTopic = ref<TopicItem | null>(null)
+
+// 选择话题
+const handleSelectTopic = (topicItem: TopicItem) => {
+  if (selectedTopic.value?.topic === topicItem.topic) {
+    selectedTopic.value = null
+  } else {
+    selectedTopic.value = topicItem
+  }
+}
+
+// 切换练习状态筛选
+const togglePracticeFilter = (value: boolean) => {
+  if (searchForm.practiceFlag === value) {
+    searchForm.practiceFlag = undefined
+  } else {
+    searchForm.practiceFlag = value
+  }
+  handleSearch()
+}
 
 // 搜索相关
 const searchForm = reactive<{
   category?: string
   part?: string
-  text?: string
+  topic?: string
+  practiceFlag?: boolean
   [key: string]: any
 }>({})
 
@@ -642,131 +680,217 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.quiz-cards {
-  padding: 20px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+// Minimalist Design System
+$white: #ffffff;
+$black: #18181b;
+$gray-50: #fafafa;
+$gray-100: #f4f4f5;
+$gray-200: #e4e4e7;
+$gray-400: #a1a1aa;
+$gray-500: #71717a;
+$gray-600: #52525b;
+$gray-900: #18181b;
 
+// Source标签 - 醒目的深色
+$source-bg: #18181b;
+$source-text: #ffffff;
+
+// 主按钮色
+$primary: #2563eb;
+$primary-hover: #1d4ed8;
+
+.quiz-cards {
+  padding: 24px 32px;
+  min-height: 100vh;
+  background: $gray-50;
+
+  // 筛选区域
   .search-section {
-    flex-shrink: 0;
     margin-bottom: 20px;
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+    background: $white;
+    padding: 20px 24px;
+    border-radius: 12px;
 
     .tab-section {
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
+      margin-bottom: 16px;
 
       :deep(.custom-tabs) {
         .el-tabs__header {
           margin: 0;
         }
 
-        .el-tabs__nav-wrap {
-          &::after {
-            display: none;
-          }
+        .el-tabs__nav-wrap::after {
+          display: none;
         }
 
         .el-tabs__nav {
           border: none;
         }
 
+        .el-tabs__active-bar {
+          display: none;
+        }
+
         .el-tabs__item {
-          padding: 8px 16px;
-          margin-right: 8px;
-          border-radius: 16px;
-          background: var(--el-fill-color-light);
+          padding: 8px 0;
+          margin-right: 32px;
+          background: transparent;
           border: none;
-          font-size: 13px;
-          transition: all 0.3s;
+          border-radius: 0;
+          font-size: 15px;
+          font-weight: 500;
+          color: $gray-400;
+          transition: color 0.2s;
+          height: auto;
+          line-height: 1.5;
+          position: relative;
+
+          &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: $black;
+            transform: scaleX(0);
+            transition: transform 0.2s;
+          }
 
           &:hover {
-            background: var(--el-color-primary-light-8);
-            color: var(--el-color-primary);
+            color: $gray-600;
           }
 
           &.is-active {
-            background: var(--el-color-primary);
-            color: #fff;
+            color: $black;
+            font-weight: 600;
+
+            &::after {
+              transform: scaleX(1);
+            }
           }
         }
       }
     }
 
-    .tab-section-with-search {
+    .filter-row {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 0;
+      justify-content: space-between;
+      gap: 16px;
+
+      .filter-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
 
       .category-tabs {
-        flex: 1;
-        margin-right: 20px;
-
         :deep(.custom-tabs) {
           .el-tabs__header {
             margin: 0;
           }
 
-          .el-tabs__nav-wrap {
-            &::after {
-              display: none;
-            }
+          .el-tabs__nav-wrap::after {
+            display: none;
           }
 
           .el-tabs__nav {
             border: none;
           }
 
+          .el-tabs__active-bar {
+            display: none;
+          }
+
           .el-tabs__item {
-            padding: 8px 16px;
-            margin-right: 8px;
-            border-radius: 16px;
-            background: var(--el-fill-color-light);
+            padding: 6px 14px;
+            margin-right: 6px;
+            background: $gray-100;
             border: none;
+            border-radius: 6px;
             font-size: 13px;
-            transition: all 0.3s;
+            font-weight: 500;
+            color: $gray-500;
+            transition: all 0.15s;
+            height: auto;
+            line-height: 1.5;
 
             &:hover {
-              background: var(--el-color-primary-light-8);
-              color: var(--el-color-primary);
+              background: $gray-200;
+              color: $gray-600;
             }
 
             &.is-active {
-              background: var(--el-color-primary);
-              color: #fff;
+              background: $black;
+              color: $white;
             }
           }
         }
       }
 
-      .search-input-wrapper {
+      .filter-divider {
+        width: 1px;
+        height: 20px;
+        background: $gray-200;
+        margin: 0 8px;
+      }
+
+      .filter-group {
+        display: flex;
+        gap: 6px;
+
+        .filter-item {
+          padding: 6px 14px;
+          background: $gray-100;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 500;
+          color: $gray-500;
+          cursor: pointer;
+          transition: all 0.15s;
+
+          &:hover {
+            background: $gray-200;
+            color: $gray-600;
+          }
+
+          &.is-active {
+            background: $black;
+            color: $white;
+          }
+        }
+      }
+
+      .search-input {
         flex-shrink: 0;
 
-        :deep(.content-search) {
-          width: 300px;
+        :deep(.el-input) {
+          width: 200px;
+
           .el-input__wrapper {
-            border-radius: 20px;
-            padding: 0 16px;
-            background-color: var(--el-fill-color-blank);
-            border: 1px solid var(--el-border-color-light);
+            border-radius: 6px;
+            padding: 0 12px;
+            background: $gray-100;
+            border: none;
             box-shadow: none;
 
             &:hover, &.is-focus {
-              border-color: var(--el-border-color);
-              background-color: var(--el-fill-color-light);
+              background: $gray-200;
             }
 
             .el-input__inner {
-              color: var(--el-text-color-regular);
+              font-size: 13px;
+              color: $gray-900;
+
               &::placeholder {
-                color: var(--el-text-color-placeholder);
+                color: $gray-400;
               }
+            }
+
+            .el-input__prefix {
+              color: $gray-400;
             }
           }
         }
@@ -774,175 +898,415 @@ onUnmounted(() => {
     }
   }
 
-  .topic-card {
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 24px;
-    color: #333;
-    transition: all 0.3s ease;
-    border: 1px solid #ebeef5;
-    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
-    width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
+  // 操作工具栏
+  .action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: $white;
+    padding: 14px 20px;
+    border-radius: 10px;
     margin-bottom: 16px;
 
-    &:hover {
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-      transform: translateY(-2px);
+    .selected-info {
+      font-size: 14px;
+      color: $gray-500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .selected-label {
+        color: $gray-400;
+      }
+
+      .selected-topic {
+        color: $gray-900;
+        font-weight: 500;
+        max-width: 400px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .no-selected {
+        color: $gray-400;
+      }
     }
 
-    .topic-content {
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+
+      .action-btn {
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid $gray-200;
+        background: $white;
+        color: $gray-600;
+        transition: all 0.15s;
+
+        &:hover:not(:disabled) {
+          border-color: $gray-900;
+          color: $gray-900;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        &.primary {
+          background: $black;
+          border-color: $black;
+          color: $white;
+
+          &:hover:not(:disabled) {
+            background: $gray-900;
+            color: #d4d4d8 !important;
+          }
+
+          &:disabled {
+            background: $gray-200;
+            border-color: $gray-200;
+            color: $gray-400;
+            opacity: 1;
+          }
+        }
+      }
+    }
+  }
+
+  // 卡片容器
+  .quiz-cards-container {
+    flex: 1;
+  }
+
+  .cards-wrapper {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  // 话题卡片 - 网格风格
+  .topic-card {
+    background: $white;
+    border-radius: 10px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 2px solid transparent;
+    display: flex;
+    flex-direction: column;
+    min-height: 160px;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    &.is-selected {
+      border-color: $black;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      gap: 24px;
-
-    }
-
-    .topic-left {
-      flex: 1;
-      min-width: 0;
-
-      .topic-title {
-        font-size: 18px;
-        font-weight: 600;
-        color: #333;
-        margin: 0 0 12px 0;
-        line-height: 1.4;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-      }
-
-      .topic-question {
-        font-size: 15px;
-        line-height: 1.6;
-        color: #666;
-        margin-bottom: 16px;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
+      align-items: center;
+      margin-bottom: 10px;
 
       .topic-tags {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 4px;
+
+        :deep(.el-tag) {
+          border-radius: 4px;
+          font-size: 11px;
+          padding: 2px 6px;
+          font-weight: 500;
+          border: none;
+          height: auto;
+          line-height: 1.4;
+          background: $gray-100;
+          color: $gray-600;
+        }
+      }
+
+      .practice-badge {
+        font-size: 11px;
+        font-weight: 500;
+        flex-shrink: 0;
+        padding: 3px 8px;
+        border-radius: 10px;
+
+        &.practiced {
+          background: #dcfce7;
+          color: #16a34a;
+        }
+
+        &.not-practiced {
+          background: $gray-100;
+          color: $gray-400;
+        }
       }
     }
 
-    .topic-right {
-      flex-shrink: 0;
+    .topic-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: $gray-900;
+      margin-bottom: 6px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .topic-question {
+      font-size: 13px;
+      line-height: 1.5;
+      color: $gray-500;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .card-footer {
       display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 10px;
 
-      .topic-actions {
-        display: flex;
+      .source-tag {
+        background: $source-bg;
+        color: $source-text;
+        border: none;
+        border-radius: 4px;
+        font-size: 11px;
+        padding: 3px 8px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .loading-text {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 32px;
+    color: $gray-400;
+    font-size: 14px;
+  }
+}
+
+// 响应式
+@media (max-width: 1200px) {
+  .quiz-cards {
+    .cards-wrapper {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .quiz-cards {
+    padding: 16px;
+
+    .search-section {
+      padding: 16px;
+
+      .filter-row {
         flex-direction: column;
-        gap: 8px;
-        align-items: flex-end;
+        align-items: stretch;
 
-        .practice-btn {
-          border-radius: 20px;
-          padding: 8px 20px;
-          font-size: 14px;
-          font-weight: 500;
-        }
-
-        .history-btn {
-          font-size: 12px;
-          color: #909399;
-          padding: 2px 8px;
-
-          &:hover {
-            color: #409eff;
+        .filter-left {
+          .filter-divider {
+            display: none;
           }
         }
 
-        .topic-count {
-          font-size: 12px;
-          color: #909399;
-          background: var(--el-fill-color-light);
-          padding: 4px 8px;
-          border-radius: 8px;
-          text-align: center;
+        .search-input {
+          width: 100%;
+          margin-top: 8px;
+
+          :deep(.el-input) {
+            width: 100%;
+          }
         }
       }
+    }
 
-      .source-info {
-        margin-top: 20px;
-        font-size: 12px;
-        color: #999;
-        text-align: right;
+    .action-bar {
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+
+      .selected-info {
+        justify-content: center;
+      }
+
+      .action-buttons {
+        justify-content: center;
       }
     }
 
-    .topic-tags {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-
-      .el-tag {
-        border-radius: 14px;
-        font-size: 12px;
-        padding: 4px 10px;
-        font-weight: 500;
-        border: none;
-      }
+    .cards-wrapper {
+      grid-template-columns: 1fr;
     }
-
-  }
-
-  .quiz-cards-container {
-    flex: 1;
-    position: relative;
-  }
-
-  .cards-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding: 0 0 40px;
-  }
-
-  // 历史记录模态框样式
-  .history-search {
-    margin-bottom: 16px;
-    padding: 16px;
-    background: #f8f9fa;
-    border-radius: 8px;
-  }
-
-  .empty-history {
-    text-align: center;
-    padding: 40px 0;
   }
 }
+
 </style>
 
 <style lang="scss">
-.select-dropdown {
-  border-radius: 8px;
-  padding: 4px;
+// 历史记录弹窗样式
+.history-dialog {
+  .el-dialog {
+    border-radius: 12px;
+    overflow: hidden;
+  }
 
-  .el-select-dropdown__item {
-    border-radius: 4px;
-    padding: 8px 12px;
+  .el-dialog__header {
+    padding: 20px 24px 16px;
+    margin: 0;
+    border-bottom: 1px solid #f4f4f5;
+  }
 
-    &:hover, &.selected {
-      background-color: var(--el-fill-color-light);
-      color: var(--el-text-color-primary);
+  .el-dialog__body {
+    padding: 0;
+  }
+
+  .history-dialog-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .header-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #18181b;
     }
 
-    &.selected {
-      font-weight: 500;
+    .header-topic {
+      font-size: 13px;
+      color: #71717a;
+      max-width: 380px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
+  }
+
+  .history-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 24px;
+    border-bottom: 1px solid #f4f4f5;
+    transition: background 0.15s;
+
+    &:hover {
+      background: #fafafa;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .item-id {
+        font-size: 13px;
+        color: #a1a1aa;
+        font-weight: 500;
+      }
+
+      .item-status {
+        font-size: 12px;
+        font-weight: 500;
+        padding: 3px 10px;
+        border-radius: 10px;
+
+        &.success {
+          background: #dcfce7;
+          color: #16a34a;
+        }
+
+        &.info {
+          background: #e0f2fe;
+          color: #0284c7;
+        }
+
+        &.danger {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+      }
+    }
+
+    .item-right {
+      .item-btn {
+        font-size: 13px;
+        font-weight: 500;
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: 1px solid #e4e4e7;
+        background: #fff;
+        color: #52525b;
+        cursor: pointer;
+        transition: all 0.15s;
+
+        &:hover {
+          border-color: #18181b;
+          color: #18181b;
+        }
+
+        &.primary {
+          background: #18181b;
+          border-color: #18181b;
+          color: #fff;
+
+          &:hover {
+            background: #27272a;
+          }
+        }
+
+        &.warning {
+          background: #fef3c7;
+          border-color: #fef3c7;
+          color: #d97706;
+
+          &:hover {
+            background: #fde68a;
+          }
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    padding: 48px 24px;
+    text-align: center;
+    color: #a1a1aa;
+    font-size: 14px;
+  }
+
+  .history-pagination {
+    padding: 16px 24px;
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid #f4f4f5;
   }
 }
 </style>

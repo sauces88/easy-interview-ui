@@ -5,6 +5,80 @@ export default {
   breadcrumb: {
     home: 'Home'
   },
+  home: {
+    welcome: 'Welcome',
+    topBanner: {
+      today: 'Today',
+      keepSpeaking: 'Keep speaking, {name}!',
+      readyToAce: 'Ready to ace your interview?',
+      trackProgress: 'Track your progress and practice daily.'
+    },
+    dailyChallenge: {
+      topicOfDay: 'Topic of the Day',
+      joinUsers: 'Join {count} users practicing this topic today:',
+      startSpeaking: 'Start Speaking',
+      dailyChallenge: 'DAILY CHALLENGE',
+      questionHint: 'Top {type} question from {companies}. Start practicing now!',
+      practiceNow: 'Practice Now',
+      noTopic: 'No topic data available',
+      noQuestion: 'No question data available'
+    },
+    countdown: {
+      examCountdown: 'Exam Countdown',
+      nextInterview: 'Next Interview',
+      daysLeft: 'Days Left',
+      exam: 'Exam',
+      at: 'at',
+      noExamScheduled: 'No exam scheduled yet?',
+      noInterviewScheduled: 'No interview scheduled yet?',
+      addTargetDate: 'Add Target Date',
+      setExamDate: 'Set Exam Date',
+      setInterviewDate: 'Set Interview Date',
+      targetDate: 'Target Date',
+      selectDate: 'Select date',
+      company: 'Company',
+      selectCompany: 'Select company',
+      role: 'Role',
+      selectRole: 'Select role',
+      pleaseSelectDate: 'Please select a date',
+      howDidItGo: 'How did it go?',
+      feedbackReceived: 'Feedback received, thank you!',
+      logDetailedResult: 'Log detailed result',
+      logFeatureComingSoon: 'Detailed logging feature coming soon'
+    },
+    quickPractice: {
+      title: 'Quick Practice',
+      speakx: {
+        realtime: 'IELTS Real-time Chat',
+        realtimeDesc: 'AI speaking practice',
+        quiz: 'IELTS Question Bank',
+        quizDesc: 'Practice with real questions',
+        mockExam: 'IELTS Mock Exam',
+        mockExamDesc: 'Full simulation test',
+        repeat: 'IELTS Sentence Practice',
+        repeatDesc: 'Pronunciation training'
+      },
+      interview: {
+        mock: 'Mock Interview',
+        mockDesc: 'AI-powered mock interview',
+        personalizedPlan: 'Personalized Plan',
+        personalizedPlanDesc: 'Custom training program',
+        training: 'Interview Training',
+        trainingDesc: 'Skill-focused practice',
+        resume: 'My Resume',
+        resumeDesc: 'Resume management'
+      }
+    },
+    community: {
+      liveCommunity: 'LIVE COMMUNITY',
+      liveCandidates: 'LIVE CANDIDATES',
+      studentsPracticing: 'Students practicing today',
+      peoplePracticing: 'People practicing right now',
+      recentActivity: 'RECENT ACTIVITY',
+      viewLeaderboard: 'View Leaderboard',
+      joinCommunity: 'Join Community'
+    }
+  },
   tabs: {
     refresh: 'Refresh',
     maximize: 'Maximize',
@@ -329,8 +403,15 @@ export default {
   ielts: {
     quiz: {
       searchPlaceholder: 'Search for keywords...',
+      practiceStatus: 'Status',
+      notPracticedTag: 'Not Practiced',
+      practiced: 'Practiced',
+      notPracticed: 'New',
+      practicedTimes: 'Practiced ({count})',
       startPractice: 'Start Practice',
-      viewHistory: 'View Practice History',
+      viewHistory: 'View History',
+      selected: 'Selected',
+      selectTopic: 'Please select a topic',
       source: 'Source',
       loading: 'Loading...',
       noMoreData: 'No more data',
@@ -374,6 +455,7 @@ export default {
       exitAnswer: 'Exit',
       prepareRecording: 'Preparing to record',
       startRecording: 'Start Recording',
+      tapToAnswer: 'Tap microphone to answer',
       viewPrevious: 'View Previous',
       waitPreviousEval: 'Wait for Previous Evaluation',
       nextQuestion: 'Next Question',
@@ -409,7 +491,13 @@ export default {
       reevaluationUpdated: 'Re-evaluation result updated',
       reevaluationFailed: 'Re-evaluation failed',
       noDataToRefresh: 'No data to refresh',
-      questionScoreCompleted: 'Question {index} scoring completed, you can view the results via navigation buttons'
+      questionScoreCompleted: 'Question {index} scoring completed, you can view the results via navigation buttons',
+      microphonePermissionFailed: 'Microphone permission failed, please allow access in browser settings',
+      // SampleAnswers
+      sampleAnswers: {
+        title: 'Stuck? See Sample Answers',
+        why: 'Why {band}?'
+      }
     },
     mockExam: {
       // ExamResults

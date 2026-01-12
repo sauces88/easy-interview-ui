@@ -1,8 +1,8 @@
 <template>
   <el-dialog
     v-model="visible"
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
+    :close-on-click-modal="allowCancel"
+    :close-on-press-escape="allowCancel"
     :show-close="false"
     width="600px"
     fullscreen
@@ -10,6 +10,25 @@
   >
     <div class="research-user-info-container">
       <div class="form-header">
+        <button
+          v-if="allowCancel"
+          class="close-btn"
+          @click="visible = false"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+          >
+            <path
+              d="M15 5L5 15M5 5L15 15"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
         <h2>请完善个人信息</h2>
         <p>为了给您提供更好的服务体验，请填写以下信息</p>
       </div>
@@ -63,6 +82,17 @@
         </div>
 
         <el-form-item
+          label="邮箱"
+          prop="email"
+        >
+          <el-input
+            v-model="formData.email"
+            placeholder="测评生成的评估报告会发送到该邮箱."
+            clearable
+          />
+        </el-form-item>
+
+        <el-form-item
           label="教育经历"
           prop="education"
         >
@@ -111,6 +141,7 @@
           size="large"
           :loading="loading"
           @click="handleSubmit"
+          round
         >
           <span v-if="!loading">提交信息</span>
           <span v-else>提交中...</span>
@@ -128,11 +159,13 @@ import type { IResearchUser } from '@/api/interface/research/researchUser'
 
 const visible = ref(false)
 const loading = ref(false)
+const allowCancel = ref(false)
 const formRef = ref<InstanceType<typeof ElForm>>()
 
 const formData = reactive<IResearchUser.Form>({
   id: undefined,
   name: '',
+  email: '',
   age: 18,
   gender: true,
   education: '',
@@ -142,19 +175,23 @@ const formData = reactive<IResearchUser.Form>({
 
 const rules = {
   name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  email: [{ type: 'email' as const, message: '请输入正确的邮箱格式', trigger: 'blur' }],
   education: [{ required: true, message: '请输入教育经历', trigger: 'blur' }],
   work: [{ required: true, message: '请输入工作履历', trigger: 'blur' }],
   goal: [{ required: true, message: '请输入学习目标', trigger: 'blur' }]
 }
 
 // 打开对话框
-const open = async () => {
+const open = async (canCancel = false) => {
+  allowCancel.value = canCancel
+
   // 先获取当前用户的数据，填充id和已有信息
   try {
     const { data } = await getCurrentResearchUserDetailApi()
     if (data && data.id) {
       formData.id = data.id
       formData.name = data.name || ''
+      formData.email = data.email || ''
       formData.age = data.age || 18
       formData.gender = typeof data.gender === 'boolean' ? data.gender : true
       formData.education = data.education || ''
@@ -203,7 +240,7 @@ defineExpose({
 <style scoped lang="scss">
 :deep(.el-dialog__body) {
   padding: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f5f5f5;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -211,42 +248,69 @@ defineExpose({
 }
 
 .research-user-info-container {
-  max-width: 800px;
+  max-width: 720px;
   width: 100%;
   margin: 40px auto;
   background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
 .form-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 40px 30px;
-  text-align: center;
-  color: #ffffff;
+  background: #fff;
+  padding: 32px 40px 24px;
+  border-bottom: 1px solid #e8e8e8;
+  position: relative;
+
+  .close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: #333;
+      color: #333;
+    }
+
+    &:active {
+      background: #f5f5f5;
+    }
+  }
 
   h2 {
-    margin: 0 0 12px 0;
-    font-size: 28px;
+    margin: 0 0 8px 0;
+    font-size: 20px;
     font-weight: 600;
+    color: #1a1a1a;
   }
 
   p {
     margin: 0;
     font-size: 14px;
-    opacity: 0.9;
+    color: #666;
   }
 }
 
 .info-form {
-  padding: 40px 50px;
+  padding: 32px 40px;
 
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
+    gap: 16px;
+    margin-bottom: 16px;
 
     :deep(.el-form-item) {
       margin-bottom: 0;
@@ -259,32 +323,36 @@ defineExpose({
   }
 
   :deep(.el-input__wrapper) {
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s;
+    border-radius: 4px;
+    box-shadow: none;
+    border: 1px solid #d9d9d9;
+    transition: border-color 0.2s;
 
     &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      border-color: #999;
     }
 
     &.is-focus {
-      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+      border-color: #333;
+      box-shadow: none;
     }
   }
 
   :deep(.el-textarea__inner) {
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s;
+    border-radius: 4px;
+    border: 1px solid #d9d9d9;
+    box-shadow: none;
     padding: 12px;
     line-height: 1.6;
+    transition: border-color 0.2s;
 
     &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      border-color: #999;
     }
 
     &:focus {
-      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+      border-color: #333;
+      box-shadow: none;
     }
   }
 
@@ -300,42 +368,41 @@ defineExpose({
     margin-right: 20px;
 
     .el-radio__label {
-      font-size: 15px;
+      font-size: 14px;
+      color: #333;
     }
   }
 
   :deep(.el-radio__input.is-checked + .el-radio__label) {
-    color: #667eea;
+    color: #1a1a1a;
   }
 
   :deep(.el-radio__input.is-checked .el-radio__inner) {
-    background-color: #667eea;
-    border-color: #667eea;
+    background-color: #1a1a1a;
+    border-color: #1a1a1a;
   }
 }
 
 .form-footer {
-  padding: 20px 50px 40px;
+  padding: 16px 40px 32px;
   text-align: center;
 
   .el-button {
-    min-width: 180px;
-    height: 48px;
-    font-size: 16px;
+    min-width: 160px;
+    height: 44px;
+    font-size: 15px;
     font-weight: 500;
-    border-radius: 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #1a1a1a;
     border: none;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-    transition: all 0.3s;
+    border-radius: 4px;
+    transition: background-color 0.2s;
 
     &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+      background: #333;
     }
 
     &:active {
-      transform: translateY(0);
+      background: #000;
     }
   }
 }
@@ -343,20 +410,20 @@ defineExpose({
 // 响应式设计
 @media screen and (max-width: 768px) {
   .research-user-info-container {
-    margin: 20px;
-    border-radius: 12px;
+    margin: 16px;
+    border-radius: 4px;
   }
 
   .form-header {
-    padding: 30px 20px;
+    padding: 24px 20px 16px;
 
     h2 {
-      font-size: 24px;
+      font-size: 18px;
     }
   }
 
   .info-form {
-    padding: 30px 20px;
+    padding: 24px 20px;
 
     .form-row {
       grid-template-columns: 1fr;
@@ -364,13 +431,13 @@ defineExpose({
       margin-bottom: 0;
 
       :deep(.el-form-item) {
-        margin-bottom: 22px;
+        margin-bottom: 18px;
       }
     }
   }
 
   .form-footer {
-    padding: 20px;
+    padding: 16px 20px 24px;
 
     .el-button {
       width: 100%;

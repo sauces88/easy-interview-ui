@@ -17,6 +17,7 @@ export namespace IResearchProj {
     academy?: string
     direction?: string
     skill?: string
+    credit?: number //所需积分
     configStatus?: number
  }
 
@@ -28,6 +29,7 @@ export namespace IResearchProj {
     academy?: string
     direction?: string
     skill?: string
+    credit?: number //所需积分
     configStatus?: number
     count?:number
   }

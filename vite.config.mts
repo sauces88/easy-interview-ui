@@ -53,6 +53,7 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
       host: '0.0.0.0',
       port: Number(env.VITE_PORT),
       open: env.VITE_OPEN === 'true',
+      allowedHosts: ['gealam.iepose.cn'],
       proxy: {
         '/api': {
           target: env.VITE_API_URL,

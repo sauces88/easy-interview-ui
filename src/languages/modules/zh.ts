@@ -5,6 +5,80 @@ export default {
   breadcrumb: {
     home: '首页'
   },
+  home: {
+    welcome: '欢迎',
+    topBanner: {
+      today: '今天',
+      keepSpeaking: '继续加油, {name}!',
+      readyToAce: '准备好面试了吗?',
+      trackProgress: '跟踪你的进度并每天练习。'
+    },
+    dailyChallenge: {
+      topicOfDay: '今日话题',
+      joinUsers: '已有 {count} 人正在练习此话题:',
+      startSpeaking: '开始练习',
+      dailyChallenge: '每日挑战',
+      questionHint: '这是{companies}最常问的{type}类问题，立即开始练习。',
+      practiceNow: '立即练习',
+      noTopic: '暂无话题数据',
+      noQuestion: '暂无问题数据'
+    },
+    countdown: {
+      examCountdown: '考试倒计时',
+      nextInterview: '下次面试',
+      daysLeft: '天剩余',
+      exam: '考试',
+      at: '在',
+      noExamScheduled: '还没有安排考试?',
+      noInterviewScheduled: '还没有安排面试?',
+      addTargetDate: '添加目标日期',
+      setExamDate: '设置考试日期',
+      setInterviewDate: '设置面试日期',
+      targetDate: '目标日期',
+      selectDate: '选择日期',
+      company: '公司',
+      selectCompany: '选择公司',
+      role: '职位',
+      selectRole: '选择职位',
+      pleaseSelectDate: '请选择日期',
+      howDidItGo: '考得怎么样?',
+      feedbackReceived: '已收到反馈，感谢!',
+      logDetailedResult: '记录详细结果',
+      logFeatureComingSoon: '详细记录功能即将上线'
+    },
+    quickPractice: {
+      title: '快速练习',
+      speakx: {
+        realtime: 'IELTS实时对话',
+        realtimeDesc: 'AI实时口语练习',
+        quiz: 'IELTS题库练习',
+        quizDesc: '海量真题训练',
+        mockExam: 'IELTS口语模拟',
+        mockExamDesc: '全真模拟考试',
+        repeat: 'IELTS句子跟读',
+        repeatDesc: '发音纠正训练'
+      },
+      interview: {
+        mock: '模拟面试',
+        mockDesc: 'AI模拟真实面试',
+        personalizedPlan: '个性化训练计划',
+        personalizedPlanDesc: '定制化提升方案',
+        training: '面试训练',
+        trainingDesc: '专项能力训练',
+        resume: '个人简历',
+        resumeDesc: '简历管理优化'
+      }
+    },
+    community: {
+      liveCommunity: '实时社区',
+      liveCandidates: '在线人数',
+      studentsPracticing: '今日练习学生数',
+      peoplePracticing: '正在练习的人数',
+      recentActivity: '近期动态',
+      viewLeaderboard: '查看排行榜',
+      joinCommunity: '加入社区'
+    }
+  },
   tabs: {
     refresh: '刷新',
     maximize: '最大化',
@@ -335,8 +409,15 @@ export default {
   ielts: {
     quiz: {
       searchPlaceholder: '请输入关键词搜索',
+      practiceStatus: '练习状态',
+      notPracticedTag: '未练习',
+      practiced: '已练习',
+      notPracticed: '未练习',
+      practicedTimes: '已练习{count}次',
       startPractice: '开始练习',
       viewHistory: '查看练习记录',
+      selected: '已选择',
+      selectTopic: '请选择一个话题',
       source: '来源',
       loading: '加载中...',
       noMoreData: '没有更多数据',
@@ -380,6 +461,7 @@ export default {
       exitAnswer: '退出答题',
       prepareRecording: '准备录制',
       startRecording: '开始录制',
+      tapToAnswer: '点击麦克风开始回答',
       viewPrevious: '查看上一题',
       waitPreviousEval: '等待上一题评估',
       nextQuestion: '下一题',
@@ -415,7 +497,13 @@ export default {
       reevaluationUpdated: '重新评估结果已更新',
       reevaluationFailed: '重新评估失败',
       noDataToRefresh: '当前没有需要刷新的数据',
-      questionScoreCompleted: '题目 {index} 评分已完成，可通过导航按钮查看结果'
+      questionScoreCompleted: '题目 {index} 评分已完成，可通过导航按钮查看结果',
+      microphonePermissionFailed: '麦克风权限获取失败，请在浏览器设置中允许访问',
+      // SampleAnswers
+      sampleAnswers: {
+        title: '卡壳了? 参考示例答案',
+        why: '为什么是 {band}?'
+      }
     },
     mockExam: {
       // ExamResults

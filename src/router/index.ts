@@ -10,6 +10,7 @@ import {initDynamicRouter} from '@/router/modules/dynamicRouter';
 import {useOptionsStore} from '@/stores/modules/options';
 import {Base64} from "js-base64"
 import {ElMessage} from "element-plus";
+import {getTitleByHostname} from "@/main";
 
 /**
  * @description 📚 路由参数配置简介
@@ -48,18 +49,7 @@ router.beforeEach(async (to, from, next) => {
     NProgress.start();
 
     // 2.动态设置标题
-    const hostname = window.location.hostname;
-    let title = import.meta.env.VITE_APP_TITLE;
-
-    // 根据域名设置不同的标题
-    if (hostname === 'easy-interview.gealam.com') {
-        title = 'Easy-Interview';
-    } else if (hostname === 'speakx.gealam.com') {
-        title = 'Speakx';
-    } else if (hostname === 'jinli.gealam.com') {
-        title = 'Jinli';
-    }
-
+    const title = getTitleByHostname();
     document.title = to.meta.title ? `${to.meta.title} - ${title}` : title;
     //http://localhost:9848?mockInterviewId=1&shareId=4
 

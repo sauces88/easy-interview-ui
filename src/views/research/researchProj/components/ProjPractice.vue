@@ -187,7 +187,9 @@
             </el-icon>
             取消
           </el-button>
+          <!-- 可以开始练习 -->
           <el-button
+            v-if="canStartPractice"
             type="success"
             size="large"
             @click="handleStartConfirm"
@@ -197,6 +199,19 @@
               <VideoPlay />
             </el-icon>
             我准备好了
+          </el-button>
+          <!-- 需要购买订阅 -->
+          <el-button
+            v-else
+            type="warning"
+            size="large"
+            @click="goToSubscription"
+            text
+          >
+            <el-icon style="margin-right: 8px">
+              <ShoppingCart />
+            </el-icon>
+            去购买订阅
           </el-button>
         </div>
       </template>
@@ -230,55 +245,66 @@
         class="practice-content"
         v-if="practiceStarted"
       >
-        <!-- 题目区域 -->
-        <div
-          class="question-section"
-          v-if="currentQuestion && !showingEvaluation"
-        >
-          <el-button
-            :icon="isCollapsed ? View : Hide"
-            text
-            class="collapse-btn"
-            @click="toggleCollapse"
+        <!-- 主内容区域 - 居中限宽 -->
+        <div class="practice-main-area">
+          <!-- 题目区域 -->
+          <div
+            class="question-section"
+            v-if="currentQuestion && !showingEvaluation"
+          >
+            <div class="question-header">
+              <div
+                v-if="totalQuestions > 0"
+                class="question-progress"
+              >
+                <el-icon><Clock /></el-icon>
+                <span>问题 {{ currentQuestionIndex }}/{{ totalQuestions }}</span>
+              </div>
+              <el-button
+                :icon="isCollapsed ? View : Hide"
+                text
+                class="collapse-btn"
+                @click="toggleCollapse"
+              />
+            </div>
+
+            <div
+              class="question-text"
+              :class="{ 'blur-content': isCollapsed }"
+            >
+              {{ currentQuestion }}
+            </div>
+
+            <div
+              v-if="currentQuestionTips"
+              class="question-tips"
+              :class="{ 'blur-content': isCollapsed }"
+            >
+              <span style="color: #409eff; font-weight: 600;">Tips：</span>
+              <span style="color: #606266;">{{ currentQuestionTips }}</span>
+            </div>
+            <div
+              v-if="currentQuestionTarget"
+              class="question-target"
+              :class="{ 'blur-content': isCollapsed }"
+            >
+              <span style="color: #f56c6c; font-weight: 600;">Research direction：</span>
+              <span style="color: #606266;">{{ currentQuestionTarget }}</span>
+            </div>
+          </div>
+
+          <!-- 音频播放器 -->
+          <AudioWaveform
+            v-if="!showingEvaluation"
+            :audio-url="audioUrl"
+            :autoplay="true"
+            :clickable="true"
+            v-show="audioUrl"
+            @ended="handleAudioEnd"
           />
 
-          <div
-            class="question-text"
-            :class="{ 'blur-content': isCollapsed }"
-          >
-            {{ currentQuestion }}
-          </div>
-
-          <div
-            v-if="currentQuestionTips"
-            class="question-tips"
-            :class="{ 'blur-content': isCollapsed }"
-          >
-            <span style="color: #409eff; font-weight: 600;">Tips：</span>
-            <span style="color: #606266;">{{ currentQuestionTips }}</span>
-          </div>
-          <div
-            v-if="currentQuestionTarget"
-            class="question-target"
-            :class="{ 'blur-content': isCollapsed }"
-          >
-            <span style="color: #f56c6c; font-weight: 600;">Research direction：</span>
-            <span style="color: #606266;">{{ currentQuestionTarget }}</span>
-          </div>
-        </div>
-
-        <!-- 音频播放器 -->
-        <AudioWaveform
-          v-if="!showingEvaluation"
-          :audio-url="audioUrl"
-          :autoplay="true"
-          :clickable="true"
-          v-show="audioUrl"
-          @ended="handleAudioEnd"
-        />
-
-        <!-- 录制控制区域 -->
-        <div class="recording-section">
+          <!-- 录制控制区域 -->
+          <div class="recording-section">
           <div class="recording-controls">
             <!-- 录制倒计时显示 -->
             <div
@@ -456,56 +482,59 @@
               </div>
             </div>
 
-            <!-- 练习结束状态（展示评估） -->
+          </div>
+        </div>
+        <!-- practice-main-area 闭合 -->
+        </div>
+
+        <!-- 练习结束状态（展示评估） - 不限制宽度 -->
+        <div
+          v-if="practiceFinished"
+          class="practice-finished"
+        >
+          <!-- 评分和点评展示 - 使用 Markdown 渲染 -->
+          <div class="evaluation-container">
             <div
-              v-else-if="practiceFinished"
-              class="practice-finished"
+              v-if="evaluationResult"
+              class="evaluation-section"
             >
-              <!-- 评分和点评展示 - 使用 Markdown 渲染 -->
-              <div class="evaluation-container">
-                <div
-                  v-if="evaluationResult"
-                  class="evaluation-section"
-                >
-                  <div class="section-header">
-                    <el-icon class="header-icon">
-                      <Document />
-                    </el-icon>
-                    <h3>评分</h3>
-                  </div>
-                  <div class="markdown-content">
-                    <v-md-preview :text="evaluationResult" />
-                  </div>
-                </div>
-
-                <div
-                  v-if="evaluationComment"
-                  class="comment-section"
-                >
-                  <div class="section-header">
-                    <el-icon class="header-icon">
-                      <Document />
-                    </el-icon>
-                    <h3>评语</h3>
-                  </div>
-                  <div class="markdown-content">
-                    <v-md-preview :text="evaluationComment" />
-                  </div>
-                </div>
-
-                <!-- 操作按钮 -->
-                <div class="evaluation-actions">
-                  <el-button
-                    v-if="evaluationError"
-                    type="warning"
-                    :loading="reappraising"
-                    @click="handleReappraise"
-                    :icon="Refresh"
-                  >
-                    {{ reappraising ? '正在重新评估...' : '重新生成评估' }}
-                  </el-button>
-                </div>
+              <div class="section-header">
+                <el-icon class="header-icon">
+                  <Document />
+                </el-icon>
+                <h3>评分</h3>
               </div>
+              <div class="markdown-content">
+                <v-md-preview :text="evaluationResult" />
+              </div>
+            </div>
+
+            <div
+              v-if="evaluationComment"
+              class="comment-section"
+            >
+              <div class="section-header">
+                <el-icon class="header-icon">
+                  <Document />
+                </el-icon>
+                <h3>评语</h3>
+              </div>
+              <div class="markdown-content">
+                <v-md-preview :text="evaluationComment" />
+              </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="evaluation-actions">
+              <el-button
+                v-if="evaluationError"
+                type="warning"
+                :loading="reappraising"
+                @click="handleReappraise"
+                :icon="Refresh"
+              >
+                {{ reappraising ? '正在重新评估...' : '重新生成评估' }}
+              </el-button>
             </div>
           </div>
         </div>
@@ -515,7 +544,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useSocketStore } from '@/stores/modules/socket'
 import { uploadFile } from '@/api/modules/system/upload'
@@ -536,17 +566,30 @@ import {
   Close,
   View,
   Hide,
-  Document
+  Document,
+  ShoppingCart,
+  Clock
 } from '@element-plus/icons-vue'
 import AudioWaveform from '@/views/ielts/mockExam/components/AudioWaveform.vue'
 import VMdPreview from '@kangc/v-md-editor/lib/preview'
 import '@kangc/v-md-editor/lib/style/preview.css'
 import githubTheme from '@kangc/v-md-editor/lib/theme/github.js'
 import '@kangc/v-md-editor/lib/theme/style/github.css'
+import hljs from 'highlight.js'
 import type { IResearchProj } from '@/api/interface/research/researchProj'
+import type { Ref } from 'vue'
+
+const router = useRouter()
+
+// 从父组件注入用户订阅数据
+const researchSubscriptionData = inject<Ref<any>>('researchSubscriptionData')
+// 注入刷新数据方法
+const reloadResearchData = inject<() => Promise<void>>('reloadResearchData')
 
 // 初始化 markdown 预览主题
-VMdPreview.use(githubTheme)
+VMdPreview.use(githubTheme, {
+  Hljs: hljs
+})
 
 // Socket 相关
 const socketStore = useSocketStore()
@@ -562,6 +605,41 @@ const isCollapsed = ref(false) // 题目是否隐藏，默认显示
 // 项目信息
 const selectedProject = ref<IResearchProj.Row>()
 const projectName = ref('')
+
+// 判断是否可以开始练习
+const canStartPractice = computed(() => {
+  const projectCredit = selectedProject.value?.credit || 0
+  // 如果项目所需积分为0，允许练习
+  if (projectCredit === 0) return true
+
+  const subscription = researchSubscriptionData?.value
+  if (!subscription) return false
+
+  const userCredit = subscription.credit || 0
+  const timeout = subscription.timeout
+
+  // 检查用户积分是否足够
+  if (userCredit < projectCredit) return false
+
+  // 检查订阅是否过期
+  return !(!timeout || new Date(timeout) < new Date());
+})
+
+// 当前问题索引（从1开始）
+const currentQuestionIndex = computed(() => {
+  if (!currentProjTaskDetailId.value || projTaskDetails.value.length === 0) return 0
+  const index = projTaskDetails.value.findIndex(detail => detail.id === currentProjTaskDetailId.value)
+  return index >= 0 ? index + 1 : 0
+})
+
+// 问题总数
+const totalQuestions = computed(() => projTaskDetails.value.length)
+
+// 跳转到购买订阅页面
+const goToSubscription = () => {
+  showPreparationDialog.value = false
+  router.push('/pay/commodity/card')
+}
 const currentProjTaskId = ref<number | null>(null) // 当前任务ID（用于重新评估）
 const currentProjTaskDetailId = ref<number | null>(null)
 const continueFlag = ref<boolean | null>(null) // 是否继续上次练习，默认为null
@@ -1235,6 +1313,9 @@ const doClose = () => {
   recordedAudioBlob.value = null
 
   visible.value = false
+
+  // 刷新订阅数据（积分可能已变化）
+  reloadResearchData?.()
 }
 
 // 确认退出
@@ -1634,6 +1715,11 @@ defineExpose({
   padding: 8px;
   margin: 0 auto;
 
+  .practice-main-area {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
   .question-section {
     position: relative;
     margin-bottom: 24px;
@@ -1642,11 +1728,28 @@ defineExpose({
     border-radius: 12px;
     border: 1px solid #e6e8eb;
 
-    .collapse-btn {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 10;
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+
+      .question-progress {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        color: #409eff;
+        font-weight: 500;
+
+        .el-icon {
+          font-size: 16px;
+        }
+      }
+
+      .collapse-btn {
+        padding: 4px 8px;
+      }
     }
 
     .question-text {
@@ -1654,7 +1757,6 @@ defineExpose({
       line-height: 1.6;
       color: #333;
       margin-bottom: 16px;
-      padding-right: 50px;
       transition: filter 0.3s ease;
     }
 
@@ -1913,171 +2015,172 @@ defineExpose({
           gap: 12px;
         }
       }
+    }
+  }
 
-      .practice-finished {
-        padding: 20px;
+  .practice-finished {
+    padding: 20px;
 
-        .finished-header {
+    .finished-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #e6e8eb;
+
+      .success-icon-large {
+        font-size: 32px;
+        color: #52c41a;
+      }
+
+      .finished-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #303133;
+      }
+    }
+
+    .evaluation-container {
+      margin-top: -50px;
+
+      .evaluation-section, .comment-section {
+        margin-bottom: 30px;
+        background: #ffffff;
+        border: 1px solid #e6e8eb;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+        .section-header {
           display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 12px;
-          margin-bottom: 30px;
-          padding-bottom: 20px;
-          border-bottom: 2px solid #e6e8eb;
+          gap: 8px;
+          padding: 16px 20px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: #ffffff;
 
-          .success-icon-large {
-            font-size: 32px;
-            color: #52c41a;
+          .header-icon {
+            font-size: 20px;
           }
 
-          .finished-title {
-            font-size: 24px;
+          h3 {
+            margin: 0;
+            font-size: 18px;
             font-weight: 600;
-            color: #303133;
           }
         }
 
-        .evaluation-container {
-          margin-top: -50px;
-          .evaluation-section, .comment-section {
-            margin-bottom: 30px;
-            background: #ffffff;
-            border: 1px solid #e6e8eb;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        .markdown-content {
+          padding: 20px;
+          text-align: left;
+          background: #fafbfc;
 
-            .section-header {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              padding: 16px 20px;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              color: #ffffff;
+          :deep(.v-md-editor-preview) {
+            background: transparent;
+            padding: 0;
+          }
 
-              .header-icon {
-                font-size: 20px;
+          :deep(.github-markdown-body) {
+            background: transparent;
+            font-size: 14px;
+            line-height: 1.8;
+
+            h1, h2, h3, h4, h5, h6 {
+              margin-top: 24px;
+              margin-bottom: 16px;
+              font-weight: 600;
+              line-height: 1.25;
+              color: #303133;
+            }
+
+            h1 {
+              font-size: 2em;
+              border-bottom: 1px solid #e6e8eb;
+              padding-bottom: 0.3em;
+            }
+
+            h2 {
+              font-size: 1.5em;
+              border-bottom: 1px solid #e6e8eb;
+              padding-bottom: 0.3em;
+            }
+
+            p {
+              margin-bottom: 16px;
+            }
+
+            ul, ol {
+              padding-left: 2em;
+              margin-bottom: 16px;
+            }
+
+            li {
+              margin-bottom: 8px;
+            }
+
+            code {
+              background: #f3f4f6;
+              padding: 2px 6px;
+              border-radius: 4px;
+              font-size: 0.9em;
+            }
+
+            pre {
+              background: #f8f9fa;
+              padding: 16px;
+              border-radius: 8px;
+              overflow-x: auto;
+            }
+
+            blockquote {
+              border-left: 4px solid #409eff;
+              padding-left: 16px;
+              color: #606266;
+              margin: 16px 0;
+            }
+
+            table {
+              border-collapse: collapse;
+              width: 100%;
+              margin: 16px 0;
+
+              th, td {
+                border: 1px solid #e6e8eb;
+                padding: 8px 12px;
+                text-align: left;
               }
 
-              h3 {
-                margin: 0;
-                font-size: 18px;
+              th {
+                background: #f3f4f6;
                 font-weight: 600;
               }
-            }
 
-            .markdown-content {
-              padding: 20px;
-              text-align: left;
-              background: #fafbfc;
-
-              :deep(.v-md-editor-preview) {
-                background: transparent;
-                padding: 0;
-              }
-
-              :deep(.github-markdown-body) {
-                background: transparent;
-                font-size: 14px;
-                line-height: 1.8;
-
-                h1, h2, h3, h4, h5, h6 {
-                  margin-top: 24px;
-                  margin-bottom: 16px;
-                  font-weight: 600;
-                  line-height: 1.25;
-                  color: #303133;
-                }
-
-                h1 {
-                  font-size: 2em;
-                  border-bottom: 1px solid #e6e8eb;
-                  padding-bottom: 0.3em;
-                }
-
-                h2 {
-                  font-size: 1.5em;
-                  border-bottom: 1px solid #e6e8eb;
-                  padding-bottom: 0.3em;
-                }
-
-                p {
-                  margin-bottom: 16px;
-                }
-
-                ul, ol {
-                  padding-left: 2em;
-                  margin-bottom: 16px;
-                }
-
-                li {
-                  margin-bottom: 8px;
-                }
-
-                code {
-                  background: #f3f4f6;
-                  padding: 2px 6px;
-                  border-radius: 4px;
-                  font-size: 0.9em;
-                }
-
-                pre {
-                  background: #f8f9fa;
-                  padding: 16px;
-                  border-radius: 8px;
-                  overflow-x: auto;
-                }
-
-                blockquote {
-                  border-left: 4px solid #409eff;
-                  padding-left: 16px;
-                  color: #606266;
-                  margin: 16px 0;
-                }
-
-                table {
-                  border-collapse: collapse;
-                  width: 100%;
-                  margin: 16px 0;
-
-                  th, td {
-                    border: 1px solid #e6e8eb;
-                    padding: 8px 12px;
-                    text-align: left;
-                  }
-
-                  th {
-                    background: #f3f4f6;
-                    font-weight: 600;
-                  }
-
-                  tr:nth-child(even) {
-                    background: #fafbfc;
-                  }
-                }
-
-                strong {
-                  font-weight: 600;
-                  color: #303133;
-                }
-
-                em {
-                  font-style: italic;
-                }
+              tr:nth-child(even) {
+                background: #fafbfc;
               }
             }
-          }
 
-          .evaluation-actions {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e6e8eb;
+            strong {
+              font-weight: 600;
+              color: #303133;
+            }
+
+            em {
+              font-style: italic;
+            }
           }
         }
+      }
+
+      .evaluation-actions {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e6e8eb;
       }
     }
   }

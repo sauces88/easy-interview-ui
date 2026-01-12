@@ -38,6 +38,10 @@ export namespace IQuiz {
     part?: string
     type?: string
     category?: string
+    answer6?: string
+    answer7?: string
+    answer8?: string
+
   }
 
 }

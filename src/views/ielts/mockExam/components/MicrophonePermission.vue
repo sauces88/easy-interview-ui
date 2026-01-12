@@ -77,7 +77,8 @@ const requestMicrophonePermission = async () => {
     } else if (error.name === 'NotFoundError') {
       ElMessage.error(t('ielts.mockExam.micNotFound'))
     } else {
-      ElMessage.error(t('ielts.mockExam.micPermissionFailed') + ': ' + error.message)
+      console.error(error.message)
+      ElMessage.error(t('ielts.mockExam.micPermissionFailed'))
     }
   } finally {
     checking.value = false

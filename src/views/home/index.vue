@@ -1,181 +1,253 @@
 <template>
-  <div class="home card">
-    <!-- 如果没有用户数据，显示欢迎图片 -->
-    <div
-      v-if="!hasUserData"
-      class="home-bg"
-    >
-      <img
-        src="@/assets/images/welcome.png"
-        :alt="t('home.welcome')"
+  <div class="home">
+    <!-- jinli.gealam.com: 研究项目首页 -->
+    <template v-if="isJinli">
+      <div
+        v-if="hasUserData"
+        class="project-list"
       >
-    </div>
+        <!-- 欢迎横幅 -->
+        <div class="welcome-banner">
+          <div class="banner-content">
+            <div class="banner-text">
+              <h1 class="banner-title">
+                欢迎来到锦鲤教育申研面试训练平台
+              </h1>
+              <p class="banner-desc">
+                AI智能模拟面试，实时反馈与进度跟踪，助你在真实面试中自信从容
+              </p>
+            </div>
+          </div>
+        </div>
 
-    <!-- 如果有用户数据，显示项目列表 -->
-    <div
-      v-else
-      class="project-list"
-    >
-      <!-- 欢迎横幅 -->
-      <div class="welcome-banner">
-        <div class="banner-content">
-          <div class="banner-text">
-            <h1 class="banner-title">
-              欢迎来到锦鲤教育申研面试训练平台
-            </h1>
-            <p class="banner-desc">
-              AI智能模拟面试，实时反馈与进度跟踪，助你在真实面试中自信从容
-            </p>
+        <!-- 项目列表标题和操作按钮 -->
+        <div class="course-header">
+          <h2 class="course-title">
+            所有项目
+          </h2>
+          <div class="course-actions">
+            <MicrophonePermission @permission-changed="handleMicrophoneChange" />
+            <el-button
+              :disabled="!selectedProject"
+              text
+              @click="viewPracticeRecords"
+            >
+              <el-icon style="margin-right: 8px; font-size: 20px">
+                <Document />
+              </el-icon>
+              查看练习记录
+            </el-button>
+            <el-button
+              v-auth="'proj.task.create'"
+              :disabled="!selectedProject || !microphoneGranted"
+              class="start-practice-btn"
+              @click="startPractice"
+            >
+              <el-icon style="margin-right: 8px; font-size: 20px">
+                <VideoPlay />
+              </el-icon>
+              开始练习
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 空状态提示 -->
+        <div
+          v-if="projectList.length === 0"
+          class="empty-state"
+        >
+          <el-empty description="暂未被分配任何项目，请联系管理员" />
+        </div>
+
+        <!-- 项目列表 -->
+        <el-row
+          v-else
+          :gutter="20"
+        >
+          <el-col
+            v-for="project in projectList"
+            :key="project.id"
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="6"
+          >
+            <el-card
+              :class="['project-card', { 'selected': selectedProject?.id === project.id }]"
+              shadow="hover"
+              @click="selectProject(project)"
+            >
+              <template #header>
+                <div class="card-header">
+                  <span class="project-name">{{ project.name }}</span>
+                  <span class="project-credit">
+                    <span class="credit-icon">✨</span>
+                    {{ project.credit || 0 }}
+                  </span>
+                </div>
+              </template>
+              <div class="project-content">
+                <div class="project-item">
+                  <span class="label">所属院校：</span>
+                  <span class="value">{{ project.academy }}</span>
+                </div>
+                <div
+                  v-if="project.intro"
+                  class="project-item"
+                >
+                  <span class="label">项目简介：</span>
+                  <span class="value">{{ project.intro }}</span>
+                </div>
+                <div
+                  v-if="project.direction"
+                  class="project-item"
+                >
+                  <span class="label">学习方向：</span>
+                  <span class="value">{{ project.direction }}</span>
+                </div>
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
+
+        <!-- 面试练习组件 -->
+        <ProjPractice ref="projPracticeRef" />
+        <!-- 练习记录组件 -->
+        <PracticeRecords ref="practiceRecordsRef" />
+      </div>
+
+      <!-- 未登录研究用户时的欢迎页 -->
+      <div
+        v-else
+        class="home-bg"
+      >
+        <img
+          src="@/assets/images/welcome.png"
+          :alt="t('home.welcome')"
+        >
+      </div>
+    </template>
+
+    <!-- speakx 和 easy-interview: 新首页布局 -->
+    <template v-else>
+      <div class="new-home-layout">
+        <!-- 顶部 -->
+        <TopBanner :is-speakx="isSpeakx" />
+
+        <div class="main-content">
+          <!-- 左侧区域 -->
+          <div class="left-section">
+            <!-- 左上：每日挑战卡片 -->
+            <DailyChallenge
+              ref="dailyChallengeRef"
+              :is-speakx="isSpeakx"
+              :role-id="countdownRoleId"
+              @start-topic-practice="handleStartTopicPractice"
+            />
+
+            <!-- 左下：快速练习入口 -->
+            <QuickPractice :is-speakx="isSpeakx" />
+          </div>
+
+          <!-- 右侧区域 -->
+          <div class="right-section">
+            <!-- 右上：倒计时卡片 -->
+            <CountdownCard
+              :is-speakx="isSpeakx"
+              @role-change="handleRoleChange"
+            />
+
+            <!-- 右下：社区统计 -->
+            <CommunityStats :is-speakx="isSpeakx" />
           </div>
         </div>
       </div>
 
-      <!-- 项目列表标题和操作按钮 -->
-      <div class="course-header">
-        <h2 class="course-title">
-          所有项目
-        </h2>
-        <div class="course-actions">
-          <MicrophonePermission @permission-changed="handleMicrophoneChange" />
-          <el-button
-            :disabled="!selectedProject"
-            @click="viewPracticeRecords"
-            text
-          >
-            <el-icon style="margin-right: 8px; font-size: 20px">
-              <Document />
-            </el-icon>
-            查看练习记录
-          </el-button>
-
-          <el-button
-            v-auth="'proj.task.create'"
-            :disabled="!selectedProject || !microphoneGranted"
-            @click="startPractice"
-            class="start-practice-btn"
-          >
-            <el-icon style="margin-right: 8px; font-size: 20px">
-              <VideoPlay />
-            </el-icon>
-            开始练习
-          </el-button>
-        </div>
-      </div>
-
-      <!-- 空状态提示 -->
-      <div
-        v-if="projectList.length === 0"
-        class="empty-state"
-      >
-        <el-empty description="暂未被分配任何项目，请联系管理员" />
-      </div>
-
-      <!-- 项目列表 -->
-      <el-row
-        v-else
-        :gutter="20"
-      >
-        <el-col
-          v-for="project in projectList"
-          :key="project.id"
-          :xs="24"
-          :sm="12"
-          :md="8"
-          :lg="6"
-        >
-          <el-card
-            :class="['project-card', { 'selected': selectedProject?.id === project.id }]"
-            shadow="hover"
-            @click="selectProject(project)"
-          >
-            <template #header>
-              <div class="card-header">
-                <span class="project-name">{{ project.name }}</span>
-              </div>
-            </template>
-            <div class="project-content">
-              <div class="project-item">
-                <span class="label">所属院校：</span>
-                <span class="value">{{ project.academy }}</span>
-              </div>
-              <div
-                v-if="project.intro"
-                class="project-item"
-              >
-                <span class="label">项目简介：</span>
-                <span class="value">{{ project.intro }}</span>
-              </div>
-              <div
-                v-if="project.direction"
-                class="project-item"
-              >
-                <span class="label">学习方向：</span>
-                <span class="value">{{ project.direction }}</span>
-              </div>
-              <div
-                v-if="project.skill"
-                class="project-item"
-              >
-                <span class="label">掌握技能：</span>
-                <span class="value">{{ project.skill }}</span>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
-    </div>
-
-    <!-- 面试练习组件 -->
-    <ProjPractice ref="projPracticeRef" />
-
-    <!-- 练习记录组件 -->
-    <PracticeRecords ref="practiceRecordsRef" />
+      <!-- QuizDetail 组件用于打开练习 -->
+      <QuizDetail ref="quizDetailRef" />
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { onMounted, ref } from 'vue'
+import { inject, onMounted, ref, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useShareStore } from '@/stores/modules/share'
 import { useRedirectStore } from '@/stores/modules/redirect'
-import { getCurrentResearchUserDetailApi } from '@/api/modules/research/researchUser'
 import { getResearchProjListApi } from '@/api/modules/research/researchProj'
 import type { IResearchProj } from '@/api/interface/research/researchProj'
 import { VideoPlay, Document } from '@element-plus/icons-vue'
 import MicrophonePermission from '@/views/ielts/mockExam/components/MicrophonePermission.vue'
 import ProjPractice from '@/views/research/researchProj/components/ProjPractice.vue'
 import PracticeRecords from '@/views/research/researchProj/components/PracticeRecords.vue'
+import type { Ref } from 'vue'
+
+// 新首页组件
+import TopBanner from './components/TopBanner.vue'
+import DailyChallenge from './components/DailyChallenge.vue'
+import CountdownCard from './components/CountdownCard.vue'
+import QuickPractice from './components/QuickPractice.vue'
+import CommunityStats from './components/CommunityStats.vue'
+import QuizDetail from '@/views/ielts/quiz/components/QuizDetail.vue'
 
 const { t } = useI18n()
 const router = useRouter()
+
+// 判断当前域名（支持 URL 参数覆盖，方便本地测试）
+// 使用方式：?site=speakx 或 ?site=interview 或 ?site=jinli
+const hostname = window.location.hostname
+const siteParam = new URLSearchParams(window.location.search).get('site')
+
+const isSpeakx = computed(() => {
+  if (siteParam) return siteParam === 'speakx'
+  return hostname.includes('speakx')
+})
+const isInterview = computed(() => {
+  if (siteParam) return siteParam === 'interview'
+  return hostname.includes('easy-interview')
+})
+const isJinli = computed(() => {
+  if (siteParam) return siteParam === 'jinli'
+  return hostname.includes('jinli')
+})
+
+// 从父组件注入数据 (jinli 专用)
+const researchUserData = inject<Ref<any>>('researchUserData')
 
 const hasUserData = ref(false)
 const projectList = ref<IResearchProj.Row[]>([])
 const selectedProject = ref<IResearchProj.Row>()
 const microphoneGranted = ref(false)
 
-// 面试练习组件引用
+// 面试练习组件引用 (jinli 专用)
 const projPracticeRef = ref<InstanceType<typeof ProjPractice>>()
-
-// 练习记录组件引用
 const practiceRecordsRef = ref<InstanceType<typeof PracticeRecords>>()
 
-// 加载用户数据和项目列表
-const loadData = async () => {
-  const { data } = await getCurrentResearchUserDetailApi()
+// 新首页相关
+const dailyChallengeRef = ref<InstanceType<typeof DailyChallenge>>()
+const quizDetailRef = ref<InstanceType<typeof QuizDetail>>()
+const countdownRoleId = ref<string>('')
 
-  if (Object.keys(data).length > 0) {
-    hasUserData.value = true
-
-    // 加载项目列表
-    const projRes = await getResearchProjListApi({ page: 1, limit: 1000 })
-    if (projRes.data && projRes.data.rows) {
-      projectList.value = projRes.data.rows
-    }
+// 加载项目列表 (jinli 专用)
+const loadProjectList = async () => {
+  const projRes = await getResearchProjListApi({ page: 1, limit: 1000 })
+  if (projRes.data && projRes.data.rows) {
+    projectList.value = projRes.data.rows
   }
 }
+
+// 监听用户数据变化 (jinli 专用)
+watch(() => researchUserData?.value, (data) => {
+  if (data && Object.keys(data).length > 0) {
+    hasUserData.value = true
+    loadProjectList()
+  } else {
+    hasUserData.value = false
+    projectList.value = []
+  }
+}, { immediate: true })
 
 onMounted(async () => {
   const redirectStore = useRedirectStore()
@@ -195,22 +267,19 @@ onMounted(async () => {
     router.push(shareLink)
     return
   }
-
-  // 加载数据
-  await loadData()
 })
 
-// 选择项目
+// 选择项目 (jinli 专用)
 const selectProject = (project: IResearchProj.Row) => {
   selectedProject.value = project
 }
 
-// 处理麦克风权限变化
+// 处理麦克风权限变化 (jinli 专用)
 const handleMicrophoneChange = (granted: boolean) => {
   microphoneGranted.value = granted
 }
 
-// 开始练习
+// 开始练习 (jinli 专用)
 const startPractice = () => {
   if (!selectedProject.value) {
     ElMessage.warning('请先选择一个项目')
@@ -220,25 +289,64 @@ const startPractice = () => {
     ElMessage.warning('请先授权麦克风权限')
     return
   }
-  // 打开面试练习组件
   projPracticeRef.value?.open(selectedProject.value)
 }
 
-// 查看练习记录
+// 查看练习记录 (jinli 专用)
 const viewPracticeRecords = () => {
   if (!selectedProject.value) {
     ElMessage.warning('请先选择一个项目')
     return
   }
-  // 打开练习记录组件
   practiceRecordsRef.value?.open(selectedProject.value)
 }
 
+// 处理倒计时设置的 roleId 变化
+const handleRoleChange = (roleId: number) => {
+  countdownRoleId.value = roleId ? String(roleId) : ''
+  // 通知 DailyChallenge 重新加载
+  dailyChallengeRef.value?.reload()
+}
+
+// 开始话题练习 (speakx)
+const handleStartTopicPractice = (topic: string) => {
+  quizDetailRef.value?.openTopicPractice(topic)
+}
 </script>
 
 <style scoped lang="scss">
 @import './index.scss';
 
+.home {
+  min-height: 100%;
+}
+
+// 新首页布局
+.new-home-layout {
+  padding: 24px 32px;
+  background: #f5f6fa;
+  min-height: 100vh;
+
+  .main-content {
+    display: flex;
+    gap: 24px;
+  }
+
+  .left-section {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .right-section {
+    width: 420px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+// jinli 专属样式
 .project-list {
   padding: 20px;
 }
@@ -342,14 +450,6 @@ const viewPracticeRecords = () => {
         cursor: not-allowed;
       }
     }
-
-    .view-records-btn {
-      background: #67C23A;
-
-      &:hover:not(:disabled) {
-        background: #5DAF34;
-      }
-    }
   }
 }
 
@@ -414,6 +514,22 @@ const viewPracticeRecords = () => {
       font-weight: 600;
       color: #303133;
     }
+
+    .project-credit {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #E6A23C;
+      background: #FDF6EC;
+      padding: 2px 8px;
+      border-radius: 12px;
+
+      .credit-icon {
+        font-size: 12px;
+      }
+    }
   }
 
   .project-content {
@@ -440,6 +556,35 @@ const viewPracticeRecords = () => {
         font-size: 14px;
         word-break: break-word;
       }
+    }
+  }
+}
+
+.home-bg {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 40px;
+
+  img {
+    max-width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+  }
+}
+
+// 响应式布局
+@media (max-width: 992px) {
+  .new-home-layout {
+    padding: 16px;
+
+    .main-content {
+      flex-direction: column;
+    }
+
+    .right-section {
+      width: 100%;
     }
   }
 }

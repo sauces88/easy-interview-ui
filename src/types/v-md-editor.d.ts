@@ -10,7 +10,7 @@ declare module '@kangc/v-md-editor/lib/preview' {
 
   interface VMdPreviewType {
     name: string
-    use: (theme: any) => void
+    use: (theme: any, options?: { Hljs?: any; [key: string]: any }) => void
     install: (app: App, options?: any) => void
   }
 

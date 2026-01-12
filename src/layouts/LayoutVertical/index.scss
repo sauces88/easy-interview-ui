@@ -10,17 +10,10 @@
       flex-direction: column;
       height: 100%;
       transition: width 0.3s ease;
-      .el-scrollbar {
-        height: calc(100% - 55px);
-        .el-menu {
-          width: 100%;
-          overflow-x: hidden;
-          border-right: none;
-        }
-      }
       .logo {
         box-sizing: border-box;
         height: 55px;
+        flex-shrink: 0;
         .logo-img {
           background-size: cover;
           width: 100%;
@@ -31,6 +24,15 @@
           font-weight: bold;
           color: var(--el-aside-logo-text-color);
           white-space: nowrap;
+        }
+      }
+      .menu-scrollbar {
+        flex: 1;
+        overflow: hidden;
+        .el-menu {
+          width: 100%;
+          overflow-x: hidden;
+          border-right: none;
         }
       }
     }

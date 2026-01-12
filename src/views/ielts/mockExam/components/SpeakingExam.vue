@@ -27,224 +27,235 @@
       class="speaking-exam"
       v-if="examStarted"
     >
-      <!-- 题目区域 -->
-      <div
-        class="question-section"
-        v-if="currentQuestion"
-        v-show="!examFinished"
-      >
-        <div class="question-header">
-          <el-button
-            :icon="isCollapsed ? View : Hide"
-            text
-            class="collapse-btn"
-            @click="toggleCollapse"
-          />
+      <!-- 主内容区域 - 居中限宽 -->
+      <div class="exam-main-area">
+        <!-- 题目区域 -->
+        <div
+          class="question-section"
+          v-if="currentQuestion"
+          v-show="!examFinished"
+        >
+          <div class="question-header">
+            <div
+              v-if="currentPartProgress"
+              class="question-progress"
+            >
+              <span>{{ currentPart }}: {{ currentPartProgress.current }}/{{ currentPartProgress.total }}</span>
+            </div>
+            <el-button
+              :icon="isCollapsed ? View : Hide"
+              text
+              class="collapse-btn"
+              @click="toggleCollapse"
+            />
+          </div>
+
           <div
             class="question-text"
             :class="{ 'blur-content': isCollapsed }"
           >
             {{ currentQuestion.text }}
           </div>
-        </div>
 
-        <div
-          v-if="currentQuestion.tips"
-          class="question-tips"
-          :class="{ 'blur-content': isCollapsed }"
-        >
-          <el-icon class="tips-icon">
-            <InfoFilled />
-          </el-icon>
-          <div class="tips-content">
-            <div
-              class="tips-text"
-              v-html="currentQuestion.tips?.replace(/\n/g, '<br>')"
-            />
+          <div
+            v-if="currentQuestion.tips"
+            class="question-tips"
+            :class="{ 'blur-content': isCollapsed }"
+          >
+            <el-icon class="tips-icon">
+              <InfoFilled />
+            </el-icon>
+            <div class="tips-content">
+              <div
+                class="tips-text"
+                v-html="currentQuestion.tips?.replace(/\n/g, '<br>')"
+              />
+            </div>
           </div>
         </div>
+
+        <!-- 音频播放器 -->
+        <AudioWaveform
+          :audio-url="audioUrl"
+          :autoplay="true"
+          :clickable="true"
+          v-show="!examFinished"
+          @ended="handleAudioEnd"
+        />
+
+        <!-- 录制控制区域 -->
+        <div class="recording-section">
+          <div class="recording-controls">
+            <!-- 思考倒计时显示 (Part2) -->
+            <div
+              v-if="thinkingTime > 0"
+              class="thinking-display"
+            >
+              <div class="thinking-number">
+                {{ formatTime(thinkingTime) }}
+              </div>
+              <div class="thinking-text">
+                {{ t('ielts.mockExam.speakingExam.thinkingTime') }}
+              </div>
+            </div>
+
+            <!-- 录制倒计时显示 -->
+            <div
+              v-else-if="countdown > 0"
+              class="countdown-display"
+            >
+              <div class="countdown-number">
+                {{ countdown }}
+              </div>
+              <div class="countdown-text">
+                {{ t('ielts.mockExam.speakingExam.prepareRecording') }}
+              </div>
+            </div>
+
+            <!-- 录制中状态 -->
+            <div
+              v-else-if="isRecording"
+              class="recording-status"
+            >
+              <div class="recording-indicator">
+                <div class="recording-dot" />
+                <span class="recording-text">{{ t('ielts.mockExam.speakingExam.recording') }}</span>
+              </div>
+              <div class="recording-time">
+                {{ formatTime(getMaxRecordingTime() - recordingTime) }}
+              </div>
+
+              <el-button
+                type="danger"
+                :icon="VideoPause"
+                @click="stopRecording"
+                class="stop-btn"
+              >
+                {{ t('ielts.mockExam.speakingExam.stopRecording') }}
+              </el-button>
+            </div>
+
+            <!-- 录制完成状态（上传中）-->
+            <div
+              v-else-if="isUploading"
+              class="uploading-status"
+            >
+              <div class="uploading-indicator">
+                <div class="uploading-spinner" />
+                <span class="uploading-text">{{ t('ielts.mockExam.speakingExam.uploadingAudio') }}</span>
+              </div>
+            </div>
+
+            <!-- 等待回复状态 -->
+            <div
+              v-else-if="waitingResponse"
+              class="waiting-status"
+            >
+              <div class="waiting-indicator">
+                <div class="waiting-spinner" />
+                <span class="waiting-text">{{ isFirstMessage ? t('ielts.mockExam.speakingExam.initializing') : t('ielts.mockExam.speakingExam.submitting') }}</span>
+              </div>
+            </div>
+
+            <!-- 等待评分状态 -->
+            <div
+              v-else-if="waitingEvaluation"
+              class="waiting-evaluation"
+            >
+              <div class="waiting-indicator">
+                <div class="waiting-spinner" />
+                <span class="waiting-text">{{ t('ielts.mockExam.speakingExam.evaluating') }}</span>
+              </div>
+            </div>
+
+            <!-- 评分错误状态 -->
+            <div
+              v-else-if="evaluationError"
+              class="evaluation-error"
+            >
+              <div class="error-content">
+                <el-icon class="error-icon">
+                  <WarningFilled />
+                </el-icon>
+                <p class="error-message">
+                  {{ evaluationError }}
+                </p>
+                <div class="error-actions">
+                  <el-button
+                    type="primary"
+                    @click="retryGenerateReport"
+                    text
+                  >
+                    {{ t('ielts.mockExam.speakingExam.retryGenerate') }}
+                  </el-button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 错误状态 -->
+            <div
+              v-else-if="errorMessage"
+              class="error-status"
+            >
+              <div class="error-content">
+                <el-icon class="error-icon">
+                  <WarningFilled />
+                </el-icon>
+                <p class="error-message">
+                  {{ errorMessage }}
+                </p>
+                <div
+                  class="error-actions"
+                  v-if="!finishFlag"
+                >
+                  <el-button
+                    type="primary"
+                    text
+                    @click="retryRecording"
+                  >
+                    {{ t('ielts.mockExam.speakingExam.retryAnswer') }}
+                  </el-button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <!-- exam-main-area 闭合 -->
       </div>
 
-      <!-- 音频播放器 -->
-      <AudioWaveform
-        :audio-url="audioUrl"
-        :autoplay="true"
-        :clickable="false"
-        v-show="!examFinished"
-        @ended="handleAudioEnd"
-      />
-
-      <!-- 录制控制区域 -->
-      <div class="recording-section">
-        <div class="recording-controls">
-          <!-- 思考倒计时显示 (Part2) -->
-          <div
-            v-if="thinkingTime > 0"
-            class="thinking-display"
-          >
-            <div class="thinking-number">
-              {{ formatTime(thinkingTime) }}
-            </div>
-            <div class="thinking-text">
-              {{ t('ielts.mockExam.speakingExam.thinkingTime') }}
-            </div>
-          </div>
-
-          <!-- 录制倒计时显示 -->
-          <div
-            v-else-if="countdown > 0"
-            class="countdown-display"
-          >
-            <div class="countdown-number">
-              {{ countdown }}
-            </div>
-            <div class="countdown-text">
-              {{ t('ielts.mockExam.speakingExam.prepareRecording') }}
-            </div>
-          </div>
-
-          <!-- 录制中状态 -->
-          <div
-            v-else-if="isRecording"
-            class="recording-status"
-          >
-            <div class="recording-indicator">
-              <div class="recording-dot" />
-              <span class="recording-text">{{ t('ielts.mockExam.speakingExam.recording') }}</span>
-            </div>
-            <div class="recording-time">
-              {{ formatTime(getMaxRecordingTime() - recordingTime) }}
-            </div>
-
-            <el-button
-              type="danger"
-              :icon="VideoPause"
-              @click="stopRecording"
-              class="stop-btn"
-            >
-              {{ t('ielts.mockExam.speakingExam.stopRecording') }}
-            </el-button>
-          </div>
-
-          <!-- 录制完成状态（上传中）-->
-          <div
-            v-else-if="isUploading"
-            class="uploading-status"
-          >
-            <div class="uploading-indicator">
-              <div class="uploading-spinner" />
-              <span class="uploading-text">{{ t('ielts.mockExam.speakingExam.uploadingAudio') }}</span>
-            </div>
-          </div>
-
-          <!-- 等待回复状态 -->
-          <div
-            v-else-if="waitingResponse"
-            class="waiting-status"
-          >
-            <div class="waiting-indicator">
-              <div class="waiting-spinner" />
-              <span class="waiting-text">{{ isFirstMessage ? t('ielts.mockExam.speakingExam.initializing') : t('ielts.mockExam.speakingExam.submitting') }}</span>
-            </div>
-          </div>
-
-          <!-- 等待评分状态 -->
-          <div
-            v-else-if="waitingEvaluation"
-            class="waiting-evaluation"
-          >
-            <div class="waiting-indicator">
-              <div class="waiting-spinner" />
-              <span class="waiting-text">{{ t('ielts.mockExam.speakingExam.evaluating') }}</span>
-            </div>
-          </div>
-
-          <!-- 评分错误状态 -->
-          <div
-            v-else-if="evaluationError"
-            class="evaluation-error"
-          >
-            <div class="error-content">
-              <el-icon class="error-icon">
-                <WarningFilled />
-              </el-icon>
-              <p class="error-message">
-                {{ evaluationError }}
-              </p>
-              <div class="error-actions">
-                <el-button
-                  type="primary"
-                  @click="retryGenerateReport"
-                  text
-                >
-                  {{ t('ielts.mockExam.speakingExam.retryGenerate') }}
-                </el-button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 错误状态 -->
-          <div
-            v-else-if="errorMessage"
-            class="error-status"
-          >
-            <div class="error-content">
-              <el-icon class="error-icon">
-                <WarningFilled />
-              </el-icon>
-              <p class="error-message">
-                {{ errorMessage }}
-              </p>
-              <div
-                class="error-actions"
-                v-if="!finishFlag"
-              >
-                <el-button
-                  type="primary"
-                  text
-                  @click="retryRecording"
-                >
-                  {{ t('ielts.mockExam.speakingExam.retryAnswer') }}
-                </el-button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 考试结束状态 -->
-          <div
-            v-else-if="examFinished"
-            class="exam-finished"
-          >
-            <div class="finished-header">
-              <el-icon class="success-icon-large">
-                <SuccessFilled />
-              </el-icon>
-              <span class="finished-title">{{ t('ielts.mockExam.speakingExam.examCompleted') }}</span>
-            </div>
-
-            <!-- 评分和点评展示 -->
-            <ExamResults
-              :evaluation-result="evaluationResult"
-              :evaluation-comment="evaluationComment"
-            />
-
-            <el-button
-              type="primary"
-              @click="handleClose"
-              style="margin-top: 20px;"
-              text
-            >
-              {{ t('ielts.mockExam.speakingExam.close') }}
-            </el-button>
-          </div>
+      <!-- 考试结束状态 - 不限制宽度 -->
+      <div
+        v-if="examFinished"
+        class="exam-finished"
+      >
+        <div class="finished-header">
+          <el-icon class="success-icon-large">
+            <SuccessFilled />
+          </el-icon>
+          <span class="finished-title">{{ t('ielts.mockExam.speakingExam.examCompleted') }}</span>
         </div>
+
+        <!-- 评分和点评展示 -->
+        <ExamResults
+          :evaluation-result="evaluationResult"
+          :evaluation-comment="evaluationComment"
+        />
+
+        <el-button
+          type="primary"
+          @click="handleClose"
+          style="margin-top: 20px;"
+          text
+        >
+          {{ t('ielts.mockExam.speakingExam.close') }}
+        </el-button>
       </div>
     </div>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useSocketStore } from '@/stores/modules/socket'
@@ -352,6 +363,37 @@ const evaluationError = ref('')
 
 // 当前题目ID
 const currentMockExamDetailId = ref<number | null>(null)
+
+// 当前 Part 内的问题进度
+const currentPartProgress = computed(() => {
+  if (!currentPart.value) return null
+
+  if (currentPart.value === 'Part2') {
+    // Part2 固定显示 1/1
+    return { current: 1, total: 1 }
+  }
+
+  if (currentPart.value === 'Part3') {
+    // Part3 的题目都在 extra 字段中，动态生成
+    const partQuestions = mockExamDetailList.value.filter(q => q.extra)
+    const currentIndexInPart = partQuestions.findIndex(q => q.id === currentMockExamDetailId.value)
+    if (currentIndexInPart < 0) return null
+    return {
+      current: currentIndexInPart + 1,
+      total: partQuestions.length
+    }
+  }
+
+  // Part1：筛选没有 extra 的题目
+  const partQuestions = mockExamDetailList.value.filter(q => !q.extra)
+  const currentIndexInPart = partQuestions.findIndex(q => q.id === currentMockExamDetailId.value)
+  if (currentIndexInPart < 0) return null
+
+  return {
+    current: currentIndexInPart + 1,
+    total: partQuestions.length - 1
+  }
+})
 
 // 获取最大录制时间（秒）
 const getMaxRecordingTime = () => {
@@ -1084,6 +1126,11 @@ defineExpose({
   padding: 8px;
   margin: 0 auto;
 
+  .exam-main-area {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
   .question-section {
     margin-bottom: 24px;
     padding: 24px;
@@ -1093,16 +1140,25 @@ defineExpose({
 
     .question-header {
       display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 20px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+
+      .question-progress {
+        font-size: 14px;
+        color: #409eff;
+        font-weight: 500;
+      }
+
+      .collapse-btn {
+        padding: 4px 8px;
+      }
     }
 
     .question-text {
       font-size: 16px;
       line-height: 1.6;
       color: #333;
-      flex: 1;
       padding: 0;
     }
 
@@ -1355,26 +1411,28 @@ defineExpose({
         }
       }
 
-      .exam-finished {
-        .finished-header {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
-          margin-bottom: 20px;
+    }
+  }
 
-          .success-icon-large {
-            font-size: 22px;
-            color: #52c41a;
-          }
+  .exam-finished {
+    text-align: center;
 
-          .finished-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #333;
-          }
-        }
+    .finished-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 20px;
 
+      .success-icon-large {
+        font-size: 22px;
+        color: #52c41a;
+      }
+
+      .finished-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #333;
       }
     }
   }

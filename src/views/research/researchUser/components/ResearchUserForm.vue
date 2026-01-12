@@ -32,6 +32,17 @@
               />
             </el-form-item>
 
+            <el-form-item
+              label="邮箱"
+              prop="email"
+            >
+              <el-input
+                v-model="paramsProps.row.email"
+                placeholder="请填写邮箱"
+                clearable
+              />
+            </el-form-item>
+
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item
@@ -158,6 +169,7 @@ const rules = reactive({
   // age: [{ required: true, message: '请填写年龄' }],
   // gender: [{ required: true, message: '请填写性别' }],
   // goal: [{ required: true, message: '请填写学习目标' }],
+  email: [{ type: 'email' as const, message: '请输入正确的邮箱格式', trigger: 'blur' }],
 })
 
 const visible = ref(false)
@@ -213,9 +225,14 @@ const acceptParams = async (params: View.DefaultParams) => {
   paramsProps.value = params
   visible.value = true
 
-  // 如果是新增模式，设置性别默认值为 true（男）
-  if (!params.row.id && params.row.gender === undefined) {
-    params.row.gender = true
+  // 如果是新增模式，设置默认值
+  if (!params.row.id) {
+    if (params.row.gender === undefined) {
+      params.row.gender = true
+    }
+    if (params.row.age === undefined) {
+      params.row.age = 18
+    }
   }
 
   // 加载项目列表

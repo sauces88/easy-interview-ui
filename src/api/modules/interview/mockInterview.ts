@@ -6,6 +6,17 @@ import type { UploadRawFile } from "element-plus/es/components/upload/src/upload
 import type { AxiosRequestConfig } from 'axios';
 
 /**
+ * 每日随机练习
+ * */
+export const random = (params?: { roleId?: string }) => {
+  const roleId = params?.roleId
+  const url = roleId
+    ? ADMIN_MODULE + `/mock-interview/random?roleId=${roleId}`
+    : ADMIN_MODULE + `/mock-interview/random`
+  return http.get<Map<string,any>>(url)
+}
+
+/**
 * 查询列表
 * @param params
 * @returns {*}
@@ -84,5 +95,4 @@ export const analyseApi = (params: { id: number }) => {
   const { id } = params
   return http.put<IMockInterview.Row>(ADMIN_MODULE + `/mock-interview/analyse/${id}`)
 }
-
 

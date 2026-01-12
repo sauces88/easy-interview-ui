@@ -7,7 +7,7 @@
   >
     <el-row :gutter="20">
       <!-- 左侧：项目编辑 -->
-      <el-col :span="11">
+      <el-col :span="14">
         <div class="section-box">
           <div class="section-title">
             项目信息
@@ -19,16 +19,33 @@
             :model="paramsProps.row"
             @submit.enter.prevent="handleSubmit"
           >
-            <el-form-item
-              label="项目名称"
-              prop="name"
-            >
-              <el-input
-                v-model="paramsProps.row.name"
-                placeholder="请输入项目名称"
-                clearable
-              />
-            </el-form-item>
+            <el-row :gutter="20">
+              <el-col :span="16">
+                <el-form-item
+                  label="项目名称"
+                  prop="name"
+                >
+                  <el-input
+                    v-model="paramsProps.row.name"
+                    placeholder="请输入项目名称"
+                    clearable
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item
+                  label="所需积分"
+                  prop="credit"
+                >
+                  <el-input-number
+                    v-model="paramsProps.row.credit"
+                    :min="0"
+                    :precision="0"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
 
             <el-form-item
               label="所属院校"
@@ -81,7 +98,7 @@
       </el-col>
 
       <!-- 右侧：题目抽取规则配置 -->
-      <el-col :span="13">
+      <el-col :span="10">
         <div class="section-box">
           <div class="section-title">
             <span>题型抽取规则配置</span>
