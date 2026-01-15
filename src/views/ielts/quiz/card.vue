@@ -80,6 +80,7 @@
       <div class="action-buttons">
         <el-button
           :disabled="!selectedTopic"
+          :loading="startingPractice"
           :icon="Microphone"
           @click="handleStartTopic(selectedTopic!)"
           v-auth="'topic.practice.create'"
@@ -338,6 +339,7 @@ const total = ref(0)
 const loading = ref(false)
 const noMore = ref(false)
 const selectedTopic = ref<TopicItem | null>(null)
+const startingPractice = ref(false)
 
 // 选择话题
 const handleSelectTopic = (topicItem: TopicItem) => {
@@ -476,9 +478,14 @@ const closeQuizDetail = () => {
 provide('close-quiz-detail', closeQuizDetail)
 
 // 开始话题练习
-const handleStartTopic = (topicItem: TopicItem) => {
-  // 直接开始整个topic的练习，不再显示选择题目的对话框
-  quizDetailRef.value?.openTopicPractice(topicItem.topic)
+const handleStartTopic = async (topicItem: TopicItem) => {
+  try {
+    startingPractice.value = true
+    // 直接开始整个topic的练习，不再显示选择题目的对话框
+    await quizDetailRef.value?.openTopicPractice(topicItem.topic)
+  } finally {
+    startingPractice.value = false
+  }
 }
 
 // 练习记录相关

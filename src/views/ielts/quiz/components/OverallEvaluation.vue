@@ -66,7 +66,7 @@
             {{ t('ielts.quiz.overallResults') }}
           </h2>
           <div class="score-grid">
-            <div class="score-card">
+            <div class="score-card" :style="{ background: scoreCardGradient }">
               <div class="score-label">
                 {{ t('ielts.quiz.accuracy') }}
               </div>
@@ -78,7 +78,7 @@
               </div>
             </div>
 
-            <div class="score-card">
+            <div class="score-card" :style="{ background: scoreCardGradient }">
               <div class="score-label">
                 {{ t('ielts.quiz.fluency') }}
               </div>
@@ -89,7 +89,7 @@
                 {{ t('ielts.quiz.fluencyDesc') }}
               </div>
             </div>
-            <div class="score-card">
+            <div class="score-card" :style="{ background: scoreCardGradient }">
               <div class="score-label">
                 {{ t('ielts.quiz.grammar') }}
               </div>
@@ -101,7 +101,7 @@
               </div>
             </div>
 
-            <div class="score-card">
+            <div class="score-card" :style="{ background: scoreCardGradient }">
               <div class="score-label">
                 {{ t('ielts.quiz.vocabulary') }}
               </div>
@@ -165,11 +165,25 @@
 
 <script setup lang="ts">
 import { RefreshRight, InfoFilled } from '@element-plus/icons-vue'
-import { ref, inject, onMounted, onUnmounted } from "vue"
+import { ref, inject, onMounted, onUnmounted, computed } from "vue"
 import { useI18n } from 'vue-i18n'
 import mittBus from '@/utils/mittBus'
 
 const { t } = useI18n()
+
+// 根据域名判断使用哪种颜色主题（支持 URL 参数覆盖，方便本地测试）
+// 使用方式：?site=speakx
+const scoreCardGradient = computed(() => {
+  const hostname = window.location.hostname
+  const siteParam = new URLSearchParams(window.location.search).get('site')
+
+  const isSpeakx = siteParam ? siteParam === 'speakx' : hostname === 'speakx.gealam.com'
+
+  if (isSpeakx) {
+    return 'linear-gradient(135deg, #00b4a0 0%, #00c9b7 50%, #00d4c0 100%)'
+  }
+  return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+})
 
 interface Props {
   topic: string
@@ -288,7 +302,6 @@ defineExpose({
 }
 
 .score-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   padding: 20px;
   border-radius: 12px;

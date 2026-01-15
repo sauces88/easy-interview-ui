@@ -6,7 +6,10 @@
       class="scores-section"
     >
       <div class="score-card">
-        <div class="score-item-overall">
+        <div
+          class="score-item-overall"
+          :style="{ background: scoreCardGradient }"
+        >
           <div class="score-label">
             {{ t('ielts.quiz.currentScore') }}
           </div>
@@ -21,6 +24,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { computed } from 'vue'
 
 const { t } = useI18n()
 
@@ -32,6 +36,20 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   evaluationResult: null,
   resultComment: ''
+})
+
+// 根据域名判断使用哪种颜色主题（支持 URL 参数覆盖，方便本地测试）
+// 使用方式：?site=speakx
+const scoreCardGradient = computed(() => {
+  const hostname = window.location.hostname
+  const siteParam = new URLSearchParams(window.location.search).get('site')
+
+  const isSpeakx = siteParam ? siteParam === 'speakx' : hostname === 'speakx.gealam.com'
+
+  if (isSpeakx) {
+    return 'linear-gradient(135deg, #00b4a0 0%, #00c9b7 50%, #00d4c0 100%)'
+  }
+  return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
 })
 
 // 格式化Markdown内容
@@ -61,15 +79,14 @@ const formatMarkdown = (content: string) => {
   .scores-section {
     margin-bottom: 28px;
   }
-  
+
   .score-card {
     display: flex;
     justify-content: center;
     margin-bottom: 24px;
   }
-  
+
   .score-item-overall {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 24px;
     border-radius: 12px;
@@ -77,13 +94,13 @@ const formatMarkdown = (content: string) => {
     min-width: 160px;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   }
-  
+
   .score-label {
     font-size: 14px;
     opacity: 0.9;
     margin-bottom: 8px;
   }
-  
+
   .score-value {
     font-size: 32px;
     font-weight: bold;

@@ -52,9 +52,17 @@
     append-to-body
   >
     <template #header />
+    <!-- 加载状态 -->
+    <div
+      v-if="isLoadingData"
+      class="loading-container"
+    >
+      <div class="loading-spinner" />
+      <p class="loading-text">{{ t('ielts.quiz.loadingPractice') }}</p>
+    </div>
     <div
       class="practice-container"
-      v-if="currentQuiz"
+      v-else-if="currentQuiz"
     >
       <!-- 顶部进度条 -->
       <div class="progress-bar">
@@ -159,6 +167,7 @@
                 :disabled="!isPreviousQuizReady() || isCheckingPreviousQuiz"
               >
                 <el-icon><ArrowLeft /></el-icon>
+                <span>{{ t('ielts.quiz.previousQuestion') }}</span>
               </button>
               <button
                 v-if="hasNextQuiz() && (submitStatus === 'completed' || isQuizAnswered())"
@@ -166,6 +175,7 @@
                 @click="nextQuiz"
               >
                 <el-icon><ArrowRight /></el-icon>
+                <span>{{ t('ielts.quiz.nextQuestion') }}</span>
               </button>
             </div>
 
@@ -456,6 +466,7 @@ const visible = ref(false)
 const currentQuiz = ref<QuizItem | null>(null)
 const isCollapsed = ref(true) // 一开始文本隐藏
 const topic = ref('')
+const isLoadingData = ref(false)
 
 // Topic练习相关状态
 const currentTopicPractice = ref<any>(null)
@@ -616,6 +627,7 @@ const continuePractice = async () => {
 
   // 打开主对话框
   visible.value = true
+  isLoadingData.value = true
 
   if (currentTopicPractice.value) {
     await loadQuizDetails()
@@ -648,6 +660,8 @@ const continuePractice = async () => {
       console.log(`[continuePractice] findNextUnfinishedQuiz 执行完成，当前 submitStatus="${submitStatus.value}"`)
     }
   }
+
+  isLoadingData.value = false
 }
 
 // 开始新练习
@@ -657,32 +671,43 @@ const startNewPractice = async () => {
 
   // 打开主对话框
   visible.value = true
-  // 如果有未完结的练习，先结束它
-  if (currentTopicPractice.value) {
-    await finishTopicPracticeApi({
-      id: currentTopicPractice.value.id,
-      topic: topic.value,
-      status: 2 // 强制完结
-    })
+  isLoadingData.value = true
+
+  try {
+    // 如果有未完结的练习，先结束它
+    if (currentTopicPractice.value) {
+      await finishTopicPracticeApi({
+        id: currentTopicPractice.value.id,
+        topic: topic.value,
+        status: 2 // 强制完结
+      })
+    }
+
+    // 创建新练习
+    const response = await createTopicPracticeApi({ topic: topic.value })
+    currentTopicPractice.value = response.data
+
+    await loadQuizDetails()
+    findNextUnfinishedQuiz()
+  } finally {
+    isLoadingData.value = false
   }
-
-  // 创建新练习
-  const response = await createTopicPracticeApi({ topic: topic.value })
-  currentTopicPractice.value = response.data
-
-  await loadQuizDetails()
-  findNextUnfinishedQuiz()
 }
 
 // 直接开始新练习（没有未完结的练习）
 const startDirectNewPractice = async () => {
-  practiceMode.value = 'new'
+  isLoadingData.value = true
+  try {
+    practiceMode.value = 'new'
 
-  const response = await createTopicPracticeApi({ topic: topic.value })
-  currentTopicPractice.value = response.data
+    const response = await createTopicPracticeApi({ topic: topic.value })
+    currentTopicPractice.value = response.data
 
-  await loadQuizDetails()
-  findNextUnfinishedQuiz()
+    await loadQuizDetails()
+    findNextUnfinishedQuiz()
+  } finally {
+    isLoadingData.value = false
+  }
 }
 
 // 加载题目详情
@@ -1325,6 +1350,7 @@ const handleClose = () => {
   isCollapsed.value = true // 重置为隐藏状态
   isAudioPlaying.value = false
   shouldAutoPlayAudio.value = true // 重置音频自动播放设置
+  isLoadingData.value = false // 重置加载状态
 
   // 停止音频播放
   audioWaveformRef.value?.stop()
@@ -1668,6 +1694,7 @@ const openTopicPracticeWithData = async (topicValue: string, practiceData: any, 
 
   // 打开主对话框
   visible.value = true
+  isLoadingData.value = true
 
   if (practiceData) {
     await loadQuizDetails()
@@ -1726,6 +1753,8 @@ const openTopicPracticeWithData = async (topicValue: string, practiceData: any, 
       }
     }
   }
+
+  isLoadingData.value = false
 }
 
 // 暴露方法
@@ -1801,6 +1830,33 @@ defineExpose({
     justify-content: center;
     align-items: center;
     box-sizing: border-box;
+  }
+
+  // 加载状态容器
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid #EEF2F6;
+      border-top-color: #00C4CC;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+      color: #64748B;
+      font-size: 14px;
+      margin: 0;
+    }
   }
 }
 
@@ -2021,9 +2077,9 @@ defineExpose({
           margin-bottom: 20px;
 
           .nav-btn {
-            width: 44px;
             height: 44px;
-            border-radius: 50%;
+            padding: 0 16px;
+            border-radius: 22px;
             border: 1px solid #EEF2F6;
             background: #fff;
             color: #64748B;
@@ -2031,8 +2087,10 @@ defineExpose({
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 6px;
             transition: all 0.2s;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            font-size: 14px;
 
             &:hover:not(:disabled) {
               border-color: #00C4CC;
